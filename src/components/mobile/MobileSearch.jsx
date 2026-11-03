@@ -3,6 +3,7 @@ import { FLOORS } from '../../data/floors.js';
 import { ArrowLeft, Toilet, Footprints, Car } from 'lucide-react';
 import { searchDoctors, DoctorAvatar } from '../hospital/common.jsx';
 import { PlaceIcon, LiftIcon, EscalatorIcon } from '../icons.jsx';
+import HomeTiles from '../hospital/HomeTiles.jsx';
 import { floorOptions, categoryOptions, filterPlaces, topStores } from '../../utils/placeFilter.js';
 
 // Facilities aren't routable places; picking one highlights it on the map.
@@ -104,6 +105,9 @@ export default function MobileSearch({ model, places, onSelect, onClose, onHighl
       </div>
       <div className="mSearchResults">
         {quickRows.length > 0 && <div className="mQuickBlock"><div className="mSearchSection">{query ? 'Nearby' : 'Quick access'}</div>{quickRows}</div>}
+        {!query && !filtering && !isStart && model && onNearest && (
+          <div className="mSearchTiles"><HomeTiles model={model} onDirections={onSelect} onNearest={onNearest} onSearch={setQ} /></div>
+        )}
         {!query && !filtering && (
           <>
             <div className="mSearchSection">{isStart ? 'Entrances & kiosks' : 'Popular'}</div>

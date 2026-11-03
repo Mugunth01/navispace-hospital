@@ -6,7 +6,6 @@ import MobileRouteSheet from './MobileRouteSheet.jsx';
 import MobileTabs from './MobileTabs.jsx';
 import HospitalSearch from '../hospital/HospitalSearch.jsx';
 import DoctorsPanel from '../hospital/DoctorsPanel.jsx';
-import HomeTiles from '../hospital/HomeTiles.jsx';
 const ParkingPanel = () => null;
 const PromoSlider = () => null;
 const isParking = () => false;
@@ -59,9 +58,6 @@ export default function MobileShell(props) {
         </div>
       )}
 
-      {tab === 'map' && !sheet && !navigating && !destPlace && !onDeck && !roaming && (
-        <div className="mSheet homeSheet hHomeSheet"><HomeTiles model={model} onDirections={onSelectDestination} onNearest={onNearest} onSearch={props.quickSearch} /></div>
-      )}
       {tab === 'map' && !sheet && !navigating && destPlace && (
         <MobileRouteSheet destPlace={destPlace} plan={plan} totalDist={totalDist}
           transportPref={transportPref} onChangeTravelMode={setTransportPref} onStart={onStartNavigation} />
