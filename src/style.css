@@ -1,0 +1,328 @@
+/* NaviSpace — night-console theme taken from the reference render:
+   deep navy chrome framing a bright marble floor plate, with the mall's own
+   sign colours (lift green, stairs orange, escalator/route blue, red pin). */
+:root{
+  --ink:#0b1426; --panel:#14213d; --panel2:#1a2a4a; --raise:#22324f; --line:#22324f;
+  --text:#f2f5fa; --muted:#8c9ab3; --dim:#62799a;
+  --blue:#2f80ff; --blue2:#6aa4ff; --red:#e5484d;
+  --lift:#0e9f4f; --stairs:#f08a24; --esc:#0e9f4f; --wc:#2f80ff; --warn:#f2b35b;
+  --glass:rgba(20,33,61,.92); --on:#22324f; --onText:#fff; --shadow:0 10px 30px rgba(0,0,0,.45);
+  --okBg:#10351f; --okLine:#1e6b3c; --okText:#7fe0a6; --errBg:#3a1419; --errText:#ffb3b3; --warnBg:#3a2a12;
+  color-scheme:dark;
+}
+/* Light theme — same sign colours, daylight surfaces. Accents are darkened a
+   notch so text on white still clears WCAG AA contrast. */
+:root[data-theme="light"]{
+  --ink:#e7ecf2; --panel:#ffffff; --panel2:#f2f5f9; --raise:#e3eaf3; --line:#d5dde7;
+  --text:#14212f; --muted:#51647a; --dim:#8a9bb0;
+  --blue:#1a5fe0; --blue2:#1a5fe0; --warn:#9a5b00;
+  --glass:rgba(255,255,255,.94); --on:#e3edff; --onText:#123b86; --shadow:0 8px 24px rgba(20,40,70,.16);
+  --okBg:#e6f4ea; --okLine:#b7e0c3; --okText:#137333; --errBg:#fdecec; --errText:#b3261e; --warnBg:#fff4de;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter Variable',Inter,'Segoe UI',system-ui,sans-serif;font-feature-settings:'tnum' 1;background:var(--ink);color:var(--text)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue2);outline-offset:2px}
+
+.app{height:100vh;display:flex;overflow:hidden;background:var(--ink)}
+
+/* ---------- Left panel ---------- */
+aside{width:330px;min-width:330px;background:var(--panel);overflow:auto;border-right:1px solid var(--line);z-index:10}
+.logo{font-size:23px;font-weight:800;letter-spacing:-.4px;padding:18px 18px 0}
+.logo span{color:var(--blue2)}
+.sub{font-size:12px;color:var(--muted);margin:3px 0 14px;padding:0 18px}
+section{border-top:1px solid var(--line);padding:14px 18px;margin:0}
+section:first-of-type{border-top:0}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;font-weight:600}
+select,input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;margin-bottom:10px;outline:none;color:var(--text)}
+select:focus,input:focus{border-color:var(--blue)}
+input::placeholder{color:var(--dim)}
+
+.route{width:100%;border:0;background:var(--blue);color:#fff;border-radius:10px;padding:11px;font-weight:700;font-size:14px;
+  box-shadow:0 4px 14px rgba(30,108,255,.35)}
+.route:hover{background:#185ee0}
+.route:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.route.small{padding:8px;font-size:13px}
+.ghost{width:100%;border:1px solid var(--line);background:transparent;color:var(--blue2);border-radius:10px;padding:9px;font-weight:600}
+.ghost:hover{background:var(--panel2)}
+.ghost.small{padding:8px;font-size:13px}
+.ghost.warn{color:var(--errText);border-color:var(--errBg)}
+
+.prefRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.prefBtn{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:8px 2px;color:var(--muted)}
+.prefBtn span{font-size:16px}
+.prefBtn small{font-size:10px;font-weight:600}
+.prefBtn.on{border-color:var(--blue);color:var(--onText);background:var(--on)}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats>div{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2)}
+.stats small{display:block;color:var(--muted);font-size:11px}
+.stats b{display:block;margin-top:3px;font-size:18px;font-weight:800;color:var(--blue2)}
+.warnNote{color:var(--warn);display:block;margin-top:4px}
+.steps{margin:10px 0 4px;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:7px 0 7px 30px;font-size:13px;line-height:1.35;border-bottom:1px solid var(--line)}
+.steps li:last-child{border-bottom:0;color:var(--text);font-weight:700}
+.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:20px;height:20px;border-radius:50%;
+  background:var(--raise);color:var(--blue2);font-size:11px;font-weight:800;display:grid;place-items:center}
+.editingPill{display:inline-block;background:var(--on);color:var(--onText);font-size:10px;font-weight:700;border-radius:10px;padding:2px 7px;margin-left:6px}
+
+.floor{width:100%;text-align:left;border:0;background:transparent;padding:9px 12px;border-radius:9px;margin:1px 0;font-size:13px;color:var(--muted)}
+.floor:hover{background:var(--panel2);color:var(--text)}
+.floor.on{background:var(--on);color:var(--onText);font-weight:700}
+.note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+p{font-size:12.5px;line-height:1.6;color:var(--muted);margin:10px 0 0}
+
+/* ---------- Top bar ---------- */
+main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+header{height:58px;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);z-index:9}
+header>button{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;color:var(--muted)}
+header>button:hover{color:var(--text)}
+header>button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+header>button:disabled{opacity:.4;cursor:not-allowed}
+.quickSearchWrap{margin:0 0 0 auto;width:min(360px,34%);position:relative}
+.quickSearchWrap input{margin:0;border-radius:10px;padding-left:34px}
+.qsIcon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.seg{display:flex;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--muted);border-radius:7px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button.active{background:var(--raise);color:var(--text)}
+.colourToggle{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.colourToggle input{width:auto;margin:0;accent-color:var(--blue)}
+.quickResults{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden;z-index:20}
+.quickResultRow{display:flex;width:100%;justify-content:space-between;padding:10px 14px;font-size:13px;cursor:pointer;border:0;background:transparent;text-align:left;color:var(--text)}
+.quickResultRow.empty{cursor:default;color:var(--muted)}
+.quickResultRow:hover{background:var(--raise)}
+.quickResultRow small{color:var(--muted)}
+
+/* ---------- Map area ---------- */
+.map{position:relative;flex:1;min-height:0;background:var(--ink);overflow:hidden}
+.map canvas{display:block}
+.map.editing canvas{cursor:crosshair}
+.title{position:absolute;z-index:4;left:14px;top:12px;background:var(--glass);border:1px solid var(--line);
+  padding:8px 13px;border-radius:10px;font-weight:700;font-size:13px}
+.legend{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 90px)}
+.lg{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--line);
+  border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600}
+.lg::before{content:'';width:12px;height:12px;border-radius:3px;background:var(--dim)}
+.lg.lift::before{background:var(--lift)}
+.lg.stairs::before{background:var(--stairs)}
+.lg.esc::before{background:var(--esc)}
+.lg.wc::before{background:var(--wc)}
+.lg.walkmode::before{background:#f8f6f1;border:1px solid #bbb}
+.lg.walkmode.open::before{background:#eeece8}
+.lg.editHint{border-color:var(--blue);color:var(--blue2)}
+.lg.editHint::before{background:var(--blue)}
+
+.facilityRail{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:4;display:flex;flex-direction:column;gap:8px}
+.facBtn{width:62px;border-radius:10px;border:1px solid var(--line);background:var(--glass);padding:7px 0 6px;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+.facBtn span{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:14px;font-weight:800;color:#fff;background:var(--dim)}
+.facBtn small{font-size:10px;color:var(--muted);font-weight:600}
+.facBtn.lift span{background:var(--lift)} .facBtn.esc span{background:var(--esc)}
+.facBtn.stairs span{background:var(--stairs)} .facBtn.wc span{background:var(--wc);font-size:11px}
+.facBtn.on{border-color:#ffc53d;box-shadow:0 0 0 1px #ffc53d}
+.facBtn.on small{color:var(--text)}
+
+.compass{position:absolute;right:14px;bottom:14px;z-index:4;width:44px;height:44px}
+.compass svg{width:100%;height:100%}
+
+.liftPanel{position:absolute;right:88px;bottom:18px;width:260px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:14px;z-index:6;box-shadow:var(--shadow)}
+.lpTitle{font-weight:800;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.lpTitle button{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.display{margin:10px 0;background:var(--panel2);border:1px solid var(--line);padding:9px;border-radius:9px;font-size:12px;color:var(--muted)}
+.display b{float:right;color:var(--blue2)}
+.stepText{font-size:12px;color:var(--muted);margin-bottom:9px;text-align:center}
+.continueBtn{margin-bottom:10px;font-size:14px}
+.arrivedNote{background:var(--okBg);border:1px solid var(--okLine);color:var(--okText);font-size:12px;border-radius:9px;padding:9px;margin-bottom:9px;text-align:center;font-weight:700}
+.orJump{font-size:12px;color:var(--muted);margin-bottom:7px}
+.liftBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.liftBtns button{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:7px 0;font-size:12px;font-weight:700;color:var(--muted)}
+.liftBtns button.current{background:var(--lift);border-color:var(--lift);color:#fff}
+
+.editPill{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;color:var(--muted)}
+.editPill.on{background:#f59f00;border-color:#f59f00;color:#1b1300}
+
+/* ---------- Add-block modal ---------- */
+.modalWrap{position:fixed;inset:0;background:rgba(3,8,15,.6);display:flex;align-items:center;justify-content:center;z-index:50}
+.modalCard{width:360px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.modalTitle{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px;margin-bottom:14px}
+.modalTitle button{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.modalNote{font-size:12px;line-height:1.45;color:var(--warn);background:var(--warnBg);border-radius:9px;padding:8px 10px;margin-bottom:10px}
+.modalNote.info{color:var(--onText);background:var(--on)}
+.formError{font-size:12.5px;line-height:1.45;color:var(--errText);background:var(--errBg);border-radius:9px;padding:8px 10px;margin:0 0 12px}
+.noMatch{margin:-4px 0 10px;font-size:12px}
+select:disabled{opacity:.5}
+.modalGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.modalHint{font-size:12px;color:var(--muted);line-height:1.5;margin:2px 0 14px}
+.modalActions{display:flex;gap:8px}
+.modalActions .ghost{flex:1}
+.modalActions .route{flex:1.4}
+
+/* Theme switch */
+.themeSwitch{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.themeSwitch button{border:0;background:transparent;color:var(--muted);border-radius:7px;padding:6px 11px;font-size:13px;font-weight:700;display:flex;gap:6px;align-items:center}
+.themeSwitch button.on{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+body,aside,header,.liftPanel,.lg,.title,.facBtn{transition:background-color .2s,color .2s,border-color .2s}
+
+/* NOTE: the old "phone: sidebar becomes a bottom sheet" media query that
+   used to live here is gone. Below the mobile breakpoint the app now renders
+   a dedicated component tree (src/components/mobile/, MobileShell.jsx) with
+   its own stylesheet (components/mobile/mobile.css), instead of reflowing
+   these desktop elements — see App.jsx's isMobile branch. This file stays
+   desktop-only CSS. */
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+
+/* ---- Admin panel ---- */
+.adminCard{width:min(640px,94vw);max-height:88vh;display:flex;flex-direction:column;gap:8px}
+.adminBar{display:flex;gap:6px}
+.adminBar .floor{flex:1;margin:0;padding:7px 4px}
+.adminList{overflow:auto;flex:1;min-height:200px;max-height:52vh;border:1px solid var(--line,#2a4263);border-radius:8px;padding:4px}
+.adminRow{display:grid;grid-template-columns:54px 1fr 132px auto;gap:6px;align-items:center;padding:3px 2px}
+.adminRow input,.adminRow select{margin:0;min-width:0}
+.adminCode{font-size:11px;font-weight:700;opacity:.75}
+.adminFoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.adminFoot .ghost{margin-left:6px}
+@media (max-width:560px){.adminRow{grid-template-columns:44px 1fr 40%;}.adminRow .ghost{grid-column:2 / span 2}}
+
+/* ---------- Journey steps (lift / escalator) ---------- */
+.tStep{display:flex;flex-direction:column;gap:8px}
+.tTitle{font-weight:800;font-size:15px}
+.tRow{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.tRow small,.tFlow small{color:var(--muted);font-size:11px;display:block}
+.tRow b{font-size:18px}
+.tLabel{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.tHint{font-size:12px;color:var(--muted)}
+.tFlow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.tFlow b{font-size:22px}
+.tFlow>span{font-size:22px;color:var(--blue2);font-weight:800}
+.tFlow>div:last-child{text-align:right}
+.liftBtns button.target{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 2px rgba(30,108,255,.3)}
+.liftBtns button:disabled{cursor:default}
+.tStep .liftBtns button{min-height:40px;font-size:13px}
+.tStep .liftBtns button.current{background:var(--panel);border-style:dashed;color:var(--muted)}
+
+/* ---------- Store card (visitor) ---------- */
+.storeCard{position:absolute;z-index:6;left:50%;bottom:18px;transform:translateX(-50%);width:340px;max-width:calc(100% - 32px);
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px 14px 12px}
+.mStoreSheet.storeCard{position:relative;left:auto;bottom:auto;transform:none;width:auto;max-width:none;border-radius:18px 18px 0 0;padding:14px 16px 14px}
+.scClose{position:absolute;right:8px;top:6px;border:0;background:transparent;color:var(--muted);font-size:20px;width:36px;height:36px;border-radius:8px}
+.scHead{display:flex;gap:10px;align-items:center;padding-right:30px}
+.scHead b{display:block;font-size:16px}
+.scHead small{color:var(--muted);font-size:12px}
+.scSwatch{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:none}
+.scOffers{margin:12px 0;display:flex;flex-direction:column;gap:8px;max-height:30vh;overflow-y:auto}
+.scOffer{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.scOffer b{font-size:14px}
+.scOffer p{margin:3px 0 0;font-size:12.5px;color:var(--muted);line-height:1.4}
+.scOffer small{font-size:11px;color:var(--muted)}
+.scTag{flex:none;background:#ff8a00;color:#fff;font-size:10px;font-weight:800;border-radius:5px;padding:3px 6px;letter-spacing:.4px}
+.scNone{font-size:13px;color:var(--muted)}
+.scActions{display:flex;gap:8px}
+.scActions .route{flex:1.3}
+.scActions .ghost{flex:1}
+
+/* ---------- Store editor (admin) ---------- */
+.storeEditor{width:420px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.storeEditor label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:700}
+.seOffersHead{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.seOffersHead .ghost{width:auto;padding:6px 10px}
+.seOffer{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel2)}
+.seOffer textarea{resize:vertical;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px;font:inherit;font-size:13px}
+.seOfferRow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seOfferRow label{flex-direction:row;align-items:center;gap:6px}
+.seOfferRow .ghost{width:auto;padding:6px 10px}
+.seFoot{display:flex;gap:8px;align-items:center;margin-top:6px}
+.seFoot>span{flex:1}
+.seFoot .ghost,.seFoot .route{width:auto;padding:9px 16px}
+
+/* ---------- Sidebar journey list, misc ---------- */
+.journeySteps{list-style:none;padding:0;margin:8px 0}
+.journeySteps li button{width:100%;display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:7px 9px;margin-bottom:4px;font-size:12.5px}
+.journeySteps li.on button{border-color:var(--blue);background:var(--on);color:var(--onText);font-weight:700}
+.journeySteps li.done button{opacity:.55}
+.stepsHead{display:block;color:var(--muted);font-size:11px;margin-top:8px}
+.adviseNote{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-top:8px}
+.swapBtn{margin-top:6px}
+.schematicTag{margin-left:8px;font-size:11px;font-weight:700;color:#9a5b00;background:#fff3d6;border-radius:6px;padding:2px 6px}
+
+/* ---------- Floor rail (phone + desktop) ---------- */
+.mFloorRail{position:absolute; left:10px; top:50%; transform:translateY(-50%); z-index:8; display:flex; flex-direction:column; width:56px;
+  background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:5px; gap:2px}
+.mShell .mFloorRail{margin-top:34px}
+.mFloorPill{position:relative; width:100%; height:36px; border-radius:10px; border:0; background:transparent; color:#c9d4e5; font-weight:600; font-size:14px; cursor:pointer}
+:root[data-theme="light"] .mFloorPill{color:var(--muted)}
+.mFloorPill:hover{background:var(--panel2)}
+.mFloorPill.on{background:var(--blue); color:#fff; box-shadow:0 2px 8px rgba(47,128,255,.4)}
+.mFloorPill.onRoute::before{content:''; position:absolute; left:-3px; top:8px; bottom:8px; width:3px; border-radius:2px; background:var(--blue)}
+.railDest,.railStart{position:absolute; right:5px; top:5px; width:7px; height:7px; border-radius:50%}
+.railDest{background:#e5484d}
+.railStart{border:2px solid var(--blue2); width:8px; height:8px}
+.map .mFloorRail{left:14px}
+
+.segWide{width:100%}
+.segWide button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px}
+.swapBtn{display:flex;align-items:center;justify-content:center;gap:6px}
+.adminSection{border-bottom:0}
+.linkBtn{border:0;background:transparent;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;cursor:pointer}
+.stepDot{width:15px;height:15px;display:grid;place-items:center;flex:none}
+.stepDot::after{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ---------- Transport step card ---------- */
+.tHead{display:flex;align-items:center;gap:10px}
+.tHead b{display:block;font-size:16px;font-weight:650}
+.tHead small{display:block;font-size:12.5px;color:var(--muted)}
+.tBadge{width:40px;height:40px;border-radius:10px;background:#0e9f4f;color:#fff;display:grid;place-items:center;flex:none}
+.tTitle{display:flex;align-items:center;gap:8px}
+.tBig{min-height:50px;font-size:16px;border-radius:12px}
+.tChips{display:flex;flex-wrap:wrap;gap:6px}
+.tChips button{min-width:44px;height:34px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:8px;font-weight:600;font-size:13px}
+.tChips button.current{border-style:dashed;opacity:.6}
+.tLabel{font-size:11px;font-weight:600;letter-spacing:.06em}
+.tMore{align-self:center;font-size:13px}
+/* ---------- Real-time walking POV ---------- */
+
+/* ---- lift sequence ---- */
+.liftFade{position:fixed;inset:0;z-index:80;pointer-events:none;background:#0b1220;opacity:0;animation:liftFade .75s ease-out both}
+@keyframes liftFade{0%{opacity:1}35%{opacity:1}100%{opacity:0}}
+.mNavToggles{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mLiftOut{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(39,196,107,.12);border:1px solid rgba(39,196,107,.45)}
+.mLiftOut b{font-size:14px}.mLiftOut span{font-size:12px;color:var(--muted)}
+.mRecenter{flex:0 0 44px;display:inline-flex;align-items:center;justify-content:center}
+.tRiding{animation:tPulse 1.1s ease-in-out infinite alternate}
+@keyframes tPulse{from{opacity:.75}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.liftFade{animation-duration:.01s}.tRiding{animation:none}}
+
+/* ---------- guide bubble ("Follow me") ---------- */
+.guideTag{background:#1d1d22;color:#fff;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.followMe{position:relative;display:inline-flex;align-items:center;gap:6px;background:#fff;color:#12203a;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.1px;
+  box-shadow:0 4px 14px rgba(8,20,45,.35);border:1.5px solid var(--blue,#1e6cff);animation:followBob 1.4s ease-in-out infinite;transform-origin:50% 100%}
+.followMe::after{content:'';position:absolute;left:50%;bottom:-6px;width:9px;height:9px;background:#fff;border-right:1.5px solid var(--blue,#1e6cff);border-bottom:1.5px solid var(--blue,#1e6cff);transform:translateX(-50%) rotate(45deg)}
+.followMe i{font-style:normal;color:var(--blue,#1e6cff);letter-spacing:-1px;animation:followNudge 1.1s ease-in-out infinite}
+@keyframes followBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes followNudge{0%,100%{opacity:.45;transform:translateX(0)}50%{opacity:1;transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){.followMe,.followMe i{animation:none}}
+
+/* v9.8 polish: toggle-style colour switch, consistent focus ring, reduced motion */
+.colourToggle{padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.colourToggle:hover{border-color:var(--blue)}
+:where(button,select,input,textarea,[role=tab],[role=radio]):focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+.mLiftWait{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;border-radius:10px;background:rgba(47,128,255,.10);border:1px solid rgba(47,128,255,.4)}
+.mLiftWaitTxt{font-size:12px;color:var(--muted);flex:1}
+.mLiftGo{min-width:48px;height:34px;padding:0 14px;border-radius:9px;border:0;background:#2f80ff;color:#fff;font-weight:800;font-size:14px;cursor:pointer}
+.mLiftMore{background:none;border:0;color:inherit;opacity:.7;font-size:12px;text-decoration:underline;cursor:pointer}
+.mFloorBtns{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%}
+.mFloorBtns button{min-width:40px;height:32px;padding:0 10px;border-radius:9px;border:1px solid var(--line,#34415c);background:transparent;color:inherit;font-weight:700;cursor:pointer}
+
+/* v9.13: compact From / To block with floor + category filters */
+.deskPick .pickFilters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.deskPick select,.deskPick input{padding:6px 10px;margin-bottom:6px;font-size:13px;border-radius:9px;height:32px}
+.deskPick .pickFilters select{margin-bottom:0}
+.deskPick label{margin:2px 0 4px;font-size:11.5px}
+.deskPick .swapBtn{margin:0 0 6px}

@@ -1,0 +1,36 @@
+/* NaviSpace Hospital additions — built on the NaviSpace tokens (style.css). */
+.hLogo{font-size:20px;line-height:1.15;text-wrap:balance}
+
+/* Quick destination tiles (home sheet on phones, Directions panel on desktop) */
+.hTiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hTile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:72px;padding:8px 4px;border-radius:14px;
+  border:1px solid color-mix(in srgb,var(--tc) 30%,var(--line));background:color-mix(in srgb,var(--tc) 14%,var(--panel));color:var(--text);
+  font-size:11.5px;font-weight:700;line-height:1.15;text-align:center}
+.hTile:hover{background:color-mix(in srgb,var(--tc) 22%,var(--panel))}
+.hTileIcon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--tc);color:#fff}
+.deskTiles{margin-top:4px}
+.deskTiles .hTile{min-height:64px;font-size:11px}
+.hHomeSheet{padding-top:12px}
+
+/* Doctors */
+.hDocAvatar{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;letter-spacing:.02em;
+  background:color-mix(in srgb,var(--blue) 22%,var(--panel2));color:var(--blue2);border:1px solid color-mix(in srgb,var(--blue) 35%,var(--line))}
+.hDocRow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:8px 4px 8px 0}
+.hDocMain{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left}
+.hDocText{min-width:0;display:flex;flex-direction:column;gap:2px}
+.hDocText b{font-size:14px}
+.hDocText small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.hDocText .hDocWhere{color:var(--blue2);font-weight:600}
+.hDocRow.compact .hDocAvatar{width:32px;height:32px;font-size:11.5px}
+.hChips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.hChips::-webkit-scrollbar{display:none}
+.mSearchRowIcon .hDocAvatar{width:30px;height:30px;font-size:11px}
+
+/* Room page */
+.hRoomDocs{display:flex;flex-direction:column;gap:10px}
+.hRoomDoc{display:flex;gap:10px;align-items:center}
+.hRoomDoc > span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hRoomDoc small{font-size:12px;color:var(--muted)}
+.frontBtn{display:inline-flex;align-items:center;gap:6px}
+.arrDocs{margin:-4px 0 10px;font-size:12.5px;color:var(--blue2);font-weight:600;text-align:center}
+@media (max-width:380px){.hTile{font-size:10.5px;min-height:66px}.hTileIcon{width:30px;height:30px}}

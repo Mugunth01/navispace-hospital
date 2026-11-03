@@ -1,0 +1,255 @@
+/* NaviSpace — mobile UI. Reuses the same CSS custom properties style.css
+   already defines (--panel, --line, --blue, --lift, --esc, --stairs, --wc,
+   --warn, --ok*, --err*, --shadow, ...) so light/dark theme + brand colours
+   stay identical between desktop and mobile — only the layout changes.
+   Loaded only when MobileShell mounts, so it never affects the desktop tree. */
+
+.mShell{
+  height:100dvh; width:100%; overflow:hidden;
+  display:flex; flex-direction:column;
+  background:var(--ink); color:var(--text);
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px);
+}
+
+/* ---------- Header (item 7 / item 10 nav mode) ---------- */
+.mHeader{
+  flex:none; min-height:52px; display:flex; align-items:center; gap:8px;
+  padding:6px 8px; background:var(--panel); border-bottom:1px solid var(--line); position:relative; z-index:12; /* above the tab panels (z 10) so the menu opens over them */
+}
+.mHeaderTitles{display:flex; flex-direction:column; line-height:1.2; min-width:0; flex:1}
+.mHeaderTitles b{font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mHeaderTitles small{font-size:11px; color:var(--muted)}
+.mFloorChip{flex:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:700}
+.mIconBtn{min-width:44px; min-height:44px; display:grid; place-items:center; border:0; background:transparent; color:var(--text); font-size:18px; border-radius:10px}
+.mIconBtn:active{background:var(--panel2)}
+.mMenuWrap{position:relative}
+.mMenuSheet{position:absolute; top:calc(100% + 4px); right:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px; box-shadow:var(--shadow); z-index:20; min-width:170px}
+.mMenuLabel{font-size:11px; color:var(--muted); font-weight:700; margin-bottom:6px}
+.mThemeSwitch{display:flex; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px}
+.mThemeSwitch button{flex:1; min-height:38px; border:0; background:transparent; color:var(--muted); border-radius:7px; font-size:13px; font-weight:700; display:flex; gap:6px; align-items:center; justify-content:center}
+.mThemeSwitch button.on{background:var(--panel); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.mHeaderNav .mFloorChip{margin-left:auto}
+
+/* ---------- Map area ---------- */
+.mMapArea{flex:1; min-height:0; position:relative; overflow:hidden; background:var(--ink)}
+.mMapArea{touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; overscroll-behavior:contain}
+.mMapArea canvas{display:block; touch-action:none} /* no page zoom / scroll fighting the map's pinch + drag, even when a finger lands on a label */
+.mPanel,.mSearchOverlay,.mSearchResults,.mSheet,.pubSheet,.mStepList{touch-action:pan-y}
+.mSearchInputWrap input,.parkField input{user-select:text; -webkit-user-select:text}
+
+/* ---------- Floating search card + full-screen search (item 8) ---------- */
+.mSearchCard{
+  position:absolute; left:12px; right:12px; top:12px; z-index:3;
+  min-height:48px; display:flex; align-items:center; gap:10px;
+  background:var(--glass); border:1px solid var(--line); border-radius:14px;
+  padding:0 14px; box-shadow:var(--shadow); color:var(--muted); font-size:14px; text-align:left;
+}
+.mSearchIcon{font-size:16px}
+.mSearchOverlay{position:fixed; inset:0; z-index:30; background:var(--panel); display:flex; flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px)}
+.mSearchBar{flex:none; display:flex; align-items:center; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line)}
+.mSearchResults{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch}
+.mSearchHint{padding:18px 16px; color:var(--muted); font-size:13px}
+.mSearchRow{width:100%; min-height:56px; display:flex; align-items:center; gap:12px; padding:8px 16px; border:0; border-bottom:1px solid var(--line); background:transparent; text-align:left; color:var(--text)}
+.mSearchRow:active{background:var(--panel2)}
+.mSearchRowIcon{width:34px; height:34px; flex:none; border-radius:9px; background:var(--panel2); display:grid; place-items:center; font-size:16px}
+.mSearchRowMain{display:flex; flex-direction:column; min-width:0}
+.mSearchRowMain b{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mSearchRowMain small{font-size:12px; color:var(--muted)}
+.mSearchRowFacility .mSearchRowIcon{background:var(--on); color:var(--onText)}
+
+/* ---------- Floating map controls (item 15) ---------- */
+.mMapControls{position:absolute; right:12px; top:10px; z-index:8; display:flex; flex-direction:column; gap:10px; align-items:center}
+.mZoomGroup{display:flex; flex-direction:column; border-radius:14px; overflow:hidden; box-shadow:var(--shadow)}
+.mZoomGroup button{width:44px; height:44px; border:0; background:var(--glass); color:var(--text); font-size:20px; font-weight:700; border-bottom:1px solid var(--line)}
+.mZoomGroup button:last-child{border-bottom:0}
+.mRoundBtn{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--glass); color:var(--text); font-size:16px; box-shadow:var(--shadow); display:grid; place-items:center}
+.mTopBtn{transition:background .15s,color .15s}
+.mTopBtn.on{background:var(--blue); border-color:var(--blue); color:#fff}
+
+/* ---------- Bottom sheets shared base ---------- */
+.mSheet, .mNavCard{
+  flex:none; position:relative; z-index:4;
+  background:var(--panel); border-top:1px solid var(--line);
+  box-shadow:0 -6px 20px rgba(0,0,0,.18);
+}
+.mSheet{border-radius:18px 18px 0 0; padding:8px 16px 16px}
+.mSheetHandle{width:36px; height:4px; border-radius:3px; background:var(--line); margin:6px auto 10px}
+.mSheetClose{position:absolute; right:10px; top:8px; min-width:36px; min-height:36px; border:0; background:transparent; color:var(--muted); font-size:20px; line-height:1; border-radius:8px}
+.mSheetTitle{display:flex; align-items:center; gap:10px; margin-bottom:12px}
+.mSheetIcon{width:38px; height:38px; border-radius:10px; background:var(--panel2); display:grid; place-items:center; font-size:18px}
+.mSheetTitle b{display:block; font-size:16px}
+.mSheetTitle small{color:var(--muted); font-size:12px}
+
+.mStatsRow{display:flex; gap:10px; margin-bottom:12px}
+.mStat{flex:1; display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px 12px}
+.mStat b{font-size:15px}
+.mFromRow{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:6px}
+.mFromRow small{display:block; color:var(--muted); font-size:11px}
+.mFromRow b{display:block; font-size:13px; margin-top:2px}
+.mFromFloor{margin-top:2px}
+.mRouteRow{margin-bottom:14px}
+.mFloorChainWrap{text-align:right}
+.mSwapBtn{flex:none; width:40px; height:40px; border-radius:50%; border:0; background:var(--raise); color:#c9d4e5; font-size:16px; display:grid; place-items:center}
+.mSwapBtn:active{background:var(--panel)}
+.mWarnNote{color:var(--warn); background:var(--warnBg); border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px}
+.mAdviseNote{color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12px; margin-bottom:12px}
+
+/* ---------- Travel-mode selector (item 7 / item 8) ---------- */
+.mTravelSection{margin-bottom:14px}
+.mTravelLabel{display:block; color:var(--muted); font-size:11px; margin-bottom:6px}
+.mTravelRow{display:flex; gap:8px}
+.mTravelBtn{flex:1; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  border-radius:12px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); font-size:12px; font-weight:700}
+.mTravelBtn span{font-size:17px}
+.mTravelBtn.on{background:var(--blue); border-color:var(--blue); color:#fff}
+
+.mPrimaryBtn{width:100%; min-height:48px; border:0; border-radius:12px; background:var(--blue); color:#fff; font-weight:800; font-size:15px; letter-spacing:.2px; box-shadow:0 4px 14px rgba(30,108,255,.35)}
+.mPrimaryBtn:disabled{opacity:.45; box-shadow:none}
+.mGhostBtn{width:100%; min-height:44px; border:1px solid var(--line); background:transparent; color:var(--blue2); border-radius:12px; font-weight:700; margin-top:10px}
+
+/* ---------- Navigation card (item 10) + transit card (item 12) ---------- */
+.mNavCard{border-radius:16px 16px 0 0; padding:14px 16px}
+.mNavInstruction{display:flex; align-items:center; gap:10px; font-size:15px; font-weight:700}
+.mNavArrow{font-size:20px; color:var(--blue2)}
+.mNavMeta{margin-top:6px; font-size:12px; color:var(--muted)}
+.mTransitTitle{display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px}
+.mTransitCore{margin:6px 0 2px; font-size:13px; color:var(--muted)}
+.mTransitLegs{font-size:14px; font-weight:700; margin:6px 0 2px}
+.mTransitHint{font-size:12px; color:var(--muted); margin-bottom:10px}
+.mArrivedNote{background:var(--okBg); border:1px solid var(--okLine); color:var(--okText); font-size:13px; border-radius:10px; padding:10px; text-align:center; font-weight:700}
+
+@media (prefers-reduced-motion: reduce){ .mShell *{transition:none!important; animation:none!important} }
+
+/* ---------- Landscape (item 25) — reclaim vertical space, no drastic relayout ---------- */
+@media (max-width:767px) and (orientation:landscape){
+  .mHeader{min-height:44px}
+  .mSheet, .mNavCard{padding-top:6px}
+}
+
+/* ---------- FROM / TO card ---------- */
+.mRouteCard{position:absolute; left:10px; right:10px; top:10px; z-index:8; display:flex; align-items:center; gap:6px;
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:4px 6px 4px 4px}
+.mRouteRows{flex:1; min-width:0}
+.mRouteField{width:100%; min-height:48px; display:flex; align-items:center; gap:10px; padding:4px 8px; border:0; background:transparent; color:var(--text); text-align:left; border-radius:12px}
+.mRouteField:active{background:var(--panel2)}
+.mRouteFieldWrap{display:flex; align-items:center}
+.mRouteFieldWrap .mRouteField{flex:1; min-width:0}
+.mRouteText{flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.2}
+.mRouteText small{font-size:10px; font-weight:800; letter-spacing:.6px; color:var(--muted)}
+.mRouteText b{font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mRouteText b.placeholder{color:var(--muted); font-weight:600}
+.mRouteFloor{flex:none; font-size:11px; font-weight:800; color:var(--muted); background:var(--panel2); border-radius:6px; padding:2px 6px}
+.mChevron{flex:none; color:var(--muted); font-size:20px}
+.mDot{flex:none; width:14px; height:14px; border-radius:50%}
+.mDotFrom{background:#1e6cff; box-shadow:0 0 0 3px rgba(30,108,255,.25)}
+.mDotTo{background:#e5484d; border-radius:50% 50% 50% 0; transform:rotate(-45deg)}
+.mRouteDivider{height:1px; background:var(--line); margin:0 8px 0 32px}
+.mClearBtn{flex:none; width:36px; height:36px; border:0; background:transparent; color:var(--muted); font-size:20px; border-radius:8px}
+.mRouteCard .mSwapBtn:disabled{opacity:.4}
+
+/* ---------- Route sheet (compact, collapsible) ---------- */
+.mRouteSheet{padding:0 14px 12px}
+.mSheetHandleBtn{display:block; width:100%; border:0; background:transparent; padding:6px 0 4px}
+.mSheetHandleBtn .mSheetHandle{margin:0 auto}
+.mRouteSheet .mSheetTitle{margin-bottom:10px}
+.mSheetTitleText{flex:1; min-width:0}
+.mSheetTitleText b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mSheetTitleText small.err{color:var(--warn); font-weight:700}
+.mStartBtn{flex:none; min-width:92px; min-height:48px; border:0; border-radius:14px; background:var(--blue); color:#fff; font-weight:800; font-size:15px; box-shadow:0 4px 14px rgba(30,108,255,.35)}
+.mRouteSheet .mTravelBtn{min-height:40px; flex-direction:row; gap:6px}
+.mStepList{margin:10px 0 0; padding:0; list-style:none; max-height:28vh; overflow-y:auto}
+.mStepList li{display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--line); font-size:13px}
+.mStepList li small{margin-left:auto; color:var(--muted); font-weight:700}
+
+/* ---------- Navigation card ---------- */
+.mNavProgress{font-size:11px; font-weight:800; letter-spacing:.4px; color:var(--muted); margin-bottom:6px; text-transform:uppercase}
+.mNavCard .mPrimaryBtn{margin-top:12px}
+.mNavCard .tStep .route{width:100%; min-height:48px; margin-top:12px; font-size:15px}
+.mBackToRoute{position:absolute; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 190px); z-index:5;
+  border:0; background:var(--text); color:var(--panel); font-weight:800; border-radius:20px; padding:10px 16px; box-shadow:var(--shadow)}
+
+/* ---------- Store sheet, edit banner, menu, search sections ---------- */
+.mStoreSheet{padding-top:14px}
+.mEditBanner{position:absolute; left:50%; transform:translateX(-50%); bottom:10px; z-index:3; background:#f59f00; color:#1b1300; font-weight:800; font-size:12px; border-radius:16px; padding:7px 12px; white-space:nowrap}
+.mMenuItem{width:100%; min-height:40px; border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:10px; font-weight:700; font-size:13px; text-align:left; padding:0 10px}
+.mSearchTitle{font-weight:800; font-size:15px}
+.mSearchInputWrap{padding:10px 12px; border-bottom:1px solid var(--line)}
+.mSearchInputWrap input{width:100%; min-height:46px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:0 14px; color:var(--text); outline:none; font-size:15px}
+.mSearchInputWrap input:focus{border-color:var(--blue)}
+.mSearchSection{padding:12px 16px 6px; font-size:11px; font-weight:800; letter-spacing:.5px; color:var(--muted); text-transform:uppercase}
+
+/* ---------- Segmented control (Lift / Escalator) ---------- */
+.mSeg{display:flex; background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:3px; gap:3px}
+.mSeg button{flex:1; min-height:40px; display:flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:9px; background:transparent; color:var(--muted); font-weight:600; font-size:14px}
+.mSeg button.on{background:var(--raise); color:#fff}
+.mSheetIcon{color:var(--blue2)}
+.mSearchRowIcon{color:var(--blue2)}
+.mNavArrow{color:var(--blue2); flex:none}
+
+
+
+/* ---------- compact navigation card (walking) ---------- */
+.mNavCard{padding:10px 14px 12px}
+.mNavCard .mNavTop{margin-bottom:6px;min-height:20px}
+.mNavCard .mNavProgress{margin:0;font-size:11px;white-space:normal;overflow-wrap:anywhere;min-width:0;flex:1}
+.mNavCard .mNavInstruction{align-items:flex-start;gap:10px}
+.mNavArrowWrap{flex:none;width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--on);color:var(--blue2)}
+.mNavText{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mNavMain{font-size:15.5px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}   /* full sentence, never cut */
+.mNavThen{margin:0;font-size:12px;color:var(--muted);font-weight:500;white-space:normal;overflow-wrap:anywhere;display:block}
+.mNavEta{flex:none;text-align:right;display:flex;flex-direction:column;line-height:1.2}
+.mNavEta b{font-size:15px;font-weight:800}
+.mNavEta small{font-size:11.5px;color:var(--muted);font-weight:600}
+.mNavBar{display:flex;gap:6px;margin-top:10px;align-items:stretch}
+.mBarPlay,.mBarIcon{height:42px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:800;font-size:14px;padding:0}
+.mBarPlay{flex:1 1 auto;min-width:92px;color:var(--blue2);padding:0 12px}
+.mBarIcon{flex:0 0 42px;width:42px}
+.mBarIcon[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.mBarSpeed{font-size:13.5px}
+.mBarPlay:active,.mBarIcon:active{background:var(--raise)}
+.mNavCard .mNavActions{margin-top:10px;grid-template-columns:1fr auto}
+.mNavCard .mNavActions .mPrimaryBtn{margin-top:0;min-height:46px;font-size:15px}
+.mNavCard .mNavActions .mGhostBtn{min-height:46px}
+.mNavCard .mLiftOut{margin-top:8px;padding:8px 12px}
+
+/* sponsored banner under the navigation card */
+.mNavAd{flex:none;position:relative;z-index:4;background:var(--panel);padding:0 12px calc(8px + env(safe-area-inset-bottom,0px));border-top:0}
+.mNavAd .promoSlider{--promo-h:62px}
+.mNavAd .promoCap b{font-size:13px}
+.mNavAd .promoThumb{width:calc(var(--promo-h) * 1.3)}
+.mNavAd .promoSlider::after{content:'Ad';position:absolute;left:6px;top:6px;z-index:2;pointer-events:none;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(10,18,34,.62);border-radius:5px;padding:1px 6px;line-height:14px}
+@media (max-height:560px){.mNavAd{display:none}}
+
+/* nearby shortcuts (restroom / fire exit / back to vehicle) */
+.quickActions{display:flex;gap:8px;margin:0 auto 8px;max-width:480px}
+.qaChip{flex:1 1 0;min-width:0;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:12px;font-size:13px;font-weight:700;padding:0 8px;white-space:nowrap}
+.qaChip span{overflow:hidden;text-overflow:ellipsis}
+.qaChip svg{flex:none;color:var(--blue2)}
+.qaChip:active{background:var(--raise)}
+.qaFire svg{color:#2fbf71}
+.qaCar{flex:1.5 1 0;background:var(--blue);border-color:var(--blue);color:#fff}
+.qaCar svg{color:#fff}
+.mQuickBlock{border-bottom:1px solid var(--line);padding-bottom:4px}
+.mQuickRow .mSearchRowMain b{font-size:14.5px}
+.mQuickCar{background:var(--on)}
+.mQuickCar .mSearchRowIcon{background:var(--blue);color:#fff}
+.mParkingSheet{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+
+.mShell:not(.navigating) .mMapControls.belowCard{top:128px}
+/* floor rail hangs under the floor title and shrinks to the room it has (a tall sheet leaves a short map) */
+.mShell .mMapArea .mFloorRail{top:176px; transform:none; margin-top:0; bottom:auto; max-height:calc(100% - 188px)}
+.mShell .mMapArea .mFloorRail .mFloorPill{flex:0 1 36px; min-height:24px; height:auto}
+.parkElse{align-self:flex-start;font-size:13.5px;font-weight:700;padding:4px 2px;color:var(--blue2);text-decoration:none}
+.mNavCard .mNavThen{margin:0}
+
+/* v9.13: smaller FROM/TO card + picker filters */
+.mRouteField{min-height:40px;padding:2px 8px}
+.mRouteText b{font-size:13.5px}
+.mRouteText small{font-size:9.5px}
+.mPickFilters{padding:6px 0 4px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.mChipRow{display:flex;gap:6px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+.mChipRow::-webkit-scrollbar{display:none}
+.mChip{flex:none;height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:700;white-space:nowrap}
+.mChip.on{background:var(--blue);border-color:var(--blue);color:#fff}

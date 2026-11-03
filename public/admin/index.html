@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NaviSpace Hospital Admin</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+<header class="abar">
+  <div class="logo"><svg class="ic" viewBox="0 0 16 16"><path d="M6 1.5h4v4.5h4.5v4H10v4.5H6V10H1.5V6H6z"/></svg></div>
+  <div class="atitle">NaviSpace Hospital admin<small id="who"></small></div>
+  <div class="mode" role="group" aria-label="Section">
+    <button id="m-layout" aria-pressed="true">Layout</button>
+    <button id="m-docs" aria-pressed="false">Doctors</button>
+  </div>
+  <nav class="ftabs" id="ftabs" aria-label="Floors"></nav>
+  <div class="tools" id="layoutTools">
+    <button class="tbtn" id="add-room">+ Room</button>
+    <button class="tbtn" id="add-walk">+ Corridor</button>
+    <button class="tbtn" id="add-start">+ Start point</button>
+  </div>
+  <div class="spacer"></div>
+  <a class="tbtn" href="../" target="_blank" rel="noopener">Open visitor app</a>
+  <button class="save" id="save" disabled>Save</button>
+  <button class="tbtn" id="signout" hidden>Sign out</button>
+</header>
+
+<main class="amain" id="layoutView">
+  <section class="planwrap">
+    <svg id="plan" aria-label="Floor plan"></svg>
+    <div class="planhint">Drag to move · drag a corner to resize · scroll to zoom · drag empty space to pan · 1 grid square = 2.5 m</div>
+  </section>
+  <aside class="insp" id="insp"></aside>
+</main>
+
+<main class="docs" id="docsView" hidden>
+  <section class="dlist">
+    <div class="dtools">
+      <input id="dq" type="search" placeholder="Search doctors, speciality or room…" aria-label="Search doctors">
+      <button class="tbtn" id="add-doc">+ Doctor</button>
+    </div>
+    <table class="dtable"><thead><tr><th>Doctor</th><th>Room</th><th>OPD days &amp; hours</th><th>Status</th></tr></thead><tbody id="dbody"></tbody></table>
+  </section>
+  <aside class="insp" id="dinsp"></aside>
+</main>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<div class="login" id="login" hidden>
+  <form class="lcard" id="lform">
+    <div class="logo"><svg class="ic" viewBox="0 0 16 16"><path d="M6 1.5h4v4.5h4.5v4H10v4.5H6V10H1.5V6H6z"/></svg></div>
+    <h2>NaviSpace Hospital admin</h2>
+    <p class="lsub">Sign in to edit rooms, corridors, start points and doctors.</p>
+    <label class="field"><span class="lbl">Email</span><input id="email" type="email" autocomplete="username" required></label>
+    <label class="field"><span class="lbl">Password</span><input id="pw" type="password" autocomplete="current-password" minlength="6" required></label>
+    <button class="primary" type="submit" id="lbtn">Sign in</button>
+    <button class="linkbtn" type="button" id="lmode">First time? Create your account</button>
+    <p class="lmsg" id="lmsg"></p>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
