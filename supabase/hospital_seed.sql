@@ -115,7 +115,7 @@ insert into public.nav_rooms(code,floor_id,name_en,name_ta,category,door_side,do
 ('baby-feeding-room','G','Baby Feeding Room','பாலூட்டும் அறை','amenities','S',0.5,1.6,null,'',null,true,-20.4,-4.8,3.6,3.6),
 ('children-s-play-area','G','Children''s Play Area','குழந்தைகள் விளையாட்டுப் பகுதி','amenities','S',0.5,1.6,null,'',null,true,16.8,-4.8,3.6,3.6),
 ('gift-flower-shop','G','Gift & Flower Shop','Gift & Flower Shop','amenities','S',0.5,1.6,null,'',null,true,39.6,-4.8,2.7,3.6),
-('optical-store','G','Optical Store','Optical Store','pharmacy','S',0.5,1.6,null,'',null,false,42.3,-4.8,2.7,3.6),
+('optical-store','G','Optical Store','Optical Store','pharmacy','S',0.5,1.6,null,'',null,true,42.3,-4.8,2.7,3.6),
 ('food-court-south-indian-meals','G','Food Court · South Indian Meals','Food Court · South Indian Meals','amenities','N',0.5,1.6,null,'',null,true,-45,1.2,2.7,3.6),
 ('food-court-tiffin-dosa','G','Food Court · Tiffin & Dosa','Food Court · Tiffin & Dosa','amenities','N',0.5,1.6,null,'',null,true,-42.3,1.2,2.7,3.6),
 ('food-court-north-indian-chinese','G','Food Court · North Indian & Chinese','Food Court · North Indian & Chinese','amenities','N',0.5,1.6,null,'',null,true,-20.4,1.2,4,3.6),

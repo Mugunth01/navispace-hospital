@@ -254,32 +254,21 @@
 .mChip{flex:none;height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:700;white-space:nowrap}
 .mChip.on{background:var(--blue);border-color:var(--blue);color:#fff}
 
-/* v6: mall-style header — name row + route rows in the header, map below left clear */
-.mHeaderBox{flex:none; position:relative; z-index:12; background:var(--panel); border-bottom:1px solid var(--line)}
-.mHeaderBox .mHeader{min-height:44px; padding:2px 4px 0 14px; border-bottom:0; background:transparent}
-.mHeaderBox .mHeaderTitles b{font-size:15px; display:flex; align-items:center; gap:8px}
-.mHeaderBox .demoPill{flex:none}
-.mWhere{display:flex; align-items:center; gap:10px; margin:0 10px 8px; padding:6px 4px 6px 14px; background:var(--panel2); border:1px solid var(--line); border-radius:12px}
-.mWhereText{flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start}
-.mWhereTo{border:0; background:transparent; padding:2px 0; color:var(--text); font-size:15.5px; font-weight:800; text-align:left; width:100%}
-.mWhereFrom{border:0; background:transparent; padding:0 0 2px; color:var(--muted); font-size:12px; text-align:left; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.mWhereFrom b{color:var(--text); font-weight:700}
-.mWhereGo{flex:none; width:40px; height:40px; border:0; background:transparent; color:var(--muted); display:grid; place-items:center; border-radius:10px}
-.mRouteCard.inHeader{position:static; margin:0 10px 8px; box-shadow:none; background:var(--panel2); border-radius:12px}
+/* v6: mall-style header (same as the Brookefields app): logo + name row, then a full-width start / destination card */
+.mHeaderBox{flex:none; position:relative; z-index:12; background:var(--panel); border-bottom:1px solid var(--line); padding-bottom:10px}
+.mHeaderBox .mHeader{min-height:56px; padding:6px 6px 6px 14px; gap:12px; border-bottom:0; background:transparent}
+.mLogo{flex:none; width:40px; height:40px; border-radius:11px; display:grid; place-items:center; color:#fff; font-weight:800; font-size:18px;
+  background:linear-gradient(135deg,#3b82f6,#7c3aed); box-shadow:0 2px 8px rgba(59,130,246,.35)}
+.mHeaderBox .mHeaderTitles b{font-size:17px; line-height:1.2}
+.mHeaderBox .mHeaderTitles small{font-size:12px; display:flex; align-items:center; gap:6px}
+.mRouteCard.inHeader{position:static; margin:0 10px; box-shadow:none; background:var(--panel2); border-radius:14px; padding:2px 6px 2px 4px}
+.mRouteCard.inHeader .mRouteField{min-height:46px; padding:4px 12px}
+.mRouteCard.inHeader .mRouteText b{font-size:15.5px}
+.mRouteCard.inHeader .mRouteDivider{margin:0 10px 0 38px}
+.mRouteCard.inHeader .mSwapBtn{background:transparent; color:var(--muted)}
 /* floor + view drop-downs: top right of the map, under the header */
-.mShell .mFloorTitle, .mShell .mFloorTitle.high{left:auto; right:10px; top:10px}
+.mShell .mFloorTitle, .mShell .mFloorTitle.high{left:auto; right:10px; top:12px}
 .mShell .mFloorTitle .floorBar{align-items:flex-end}
 /* bottom tabs: three equal tabs edge to edge, no empty column */
 .mShell .mTabs{grid-template-columns:repeat(3,1fr)}
 .mShell .mTabs button{min-height:52px}
-/* wide but short windows (laptop at 125% zoom) use this layout too: keep the route rows one compact line */
-@media (min-width:768px){
-  .mHeaderBox{display:flex; align-items:center; gap:12px; padding:0 4px 0 14px}
-  .mHeaderBox .mHeader{display:contents}
-  .mHeaderBox .mHeaderTitles{flex:none; max-width:30%; order:0}
-  .mHeaderBox .mMenuWrap{order:2}
-  .mHeaderBox > .mWhere, .mHeaderBox > .mRouteCard.inHeader{flex:1; margin:6px 0; order:1}
-  .mRouteCard.inHeader .mRouteRows{display:flex; align-items:center}
-  .mRouteCard.inHeader .mRouteRows > *{flex:1; min-width:0}
-  .mRouteCard.inHeader .mRouteDivider{flex:none; width:1px; height:28px; margin:0 6px}
-}

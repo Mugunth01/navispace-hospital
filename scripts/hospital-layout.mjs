@@ -193,7 +193,7 @@ export const DEPT = {
 };
 
 // Staff-only rooms stay on the map but are not offered in visitor search.
-const STAFF_ONLY = /dirty utility|linen|store\b|store room|equipment|water treatment|scope cleaning|cssd|anaesthesia workroom|scrub|changing \(|doctors duty|doctors lounge|doctors room|staff lounge|surgeons lounge|pantry|housekeeping|biomedical|lab quality|central lab store|dietary kitchen|tumour board|bedside dialysis store/;
+const STAFF_ONLY = /dirty utility|linen|(?<!optical )store\b|store room|equipment|water treatment|scope cleaning|cssd|anaesthesia workroom|scrub|changing \(|doctors duty|doctors lounge|doctors room|staff lounge|surgeons lounge|pantry|housekeeping|biomedical|lab quality|central lab store|dietary kitchen|tumour board|bedside dialysis store/;
 function categoryOf(name, fid, zone) {
   const n = name.toLowerCase();
   if (fid === 'G' && zone === 'S-30') return /pharmacy/.test(n) ? 'pharmacy' : 'emergency';
