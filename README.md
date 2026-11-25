@@ -111,7 +111,9 @@ help line, sender name.
 Emails: booking confirmed, cancelled (by the patient / by the hospital), moved, doctor leave. The database queues them;
 the `send-mail` edge function renders each one and sends it through **EmailJS** (free: 200 emails/month).
 - EmailJS template `template_hospital` (already created): subject `{{subject}}`, to `{{to_email}}`, from name `{{from_name}}`,
-  reply-to admin@tefnotech.com, body `{{{html}}}`, "Do not save private data" on.
+  reply-to admin@tefnotech.com, "Do not save private data" on. Body = `supabase/emailjs-template.html`, filled with named fields:
+  `hospital_name heading accent patient_name message booking_id booking_type who_label who date_time location`
+  plus optional `previous_date_time` (moved), `prep` (lab), `button1..3_label/_url`, `support_line`.
 - EmailJS → Email Services: connect the **admin@tefnotech.com** mailbox (this is what makes it the sender).
 - EmailJS → Account → Security: tick **Allow EmailJS API for non-browser applications** (the function sends from the server, so the
   private key never reaches the browser).

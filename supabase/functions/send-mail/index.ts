@@ -1,7 +1,8 @@
 // send-mail: renders queued rows of nav_email_outbox and sends them.
 // Provider: EmailJS (EMAILJS_SERVICE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY, optional EMAILJS_TEMPLATE_ID =
-// template_hospital). The EmailJS service is the admin@tefnotech.com mailbox; the template is {{{html}}} with
-// subject {{subject}}, to {{to_email}}, from name {{from_name}}. Needs "Allow EmailJS API for non-browser
+// template_hospital). The EmailJS service is the admin@tefnotech.com mailbox. The template (supabase/emailjs-template.html)
+// uses named fields ({{heading}} {{message}} {{patient_name}} {{booking_id}} {{who}} {{date_time}} {{location}} ...),
+// subject {{subject}}, to {{to_email}}, from name {{from_name}}; {{{html}}} also carries the full rendered email. Needs "Allow EmailJS API for non-browser
 // applications" in EmailJS → Account → Security. Fallbacks: Brevo (BREVO_API_KEY + MAIL_FROM) or Resend (RESEND_API_KEY + MAIL_FROM).
 // With no provider configured the rows are marked "skipped" but keep the rendered email,
 // so the admin's Outbox still shows exactly what the patient would get.
@@ -70,6 +71,21 @@ function render(row: any, a: any, doc: any, room: any, floor: any, tests: any[],
       break;
   }
   const prep = a.kind === "lab" ? tests.filter((t) => t.prep).map((t) => `<li><b>${esc(t.name)}:</b> ${esc(t.prep)}</li>`).join("") : "";
+  // Named fields for the EmailJS template (plain text — EmailJS escapes them).
+  const tone = ({ booked: ["Booking confirmed", "#16a34a"], rescheduled: ["Appointment moved", "#d97706"], cancelled_patient: ["Booking cancelled", "#64748b"],
+    cancelled_hospital: ["Appointment cancelled", "#dc2626"], leave_cancel: ["Appointment cancelled", "#dc2626"] } as Record<string, string[]>)[row.kind] ?? ["Update", "#1d4ed8"];
+  const plain = (x: string) => x.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  const params: Record<string, string> = {
+    subject, hospital_name: st?.hospital_name || "Hospital", heading: tone[0], accent: tone[1],
+    patient_name: a.patient_name, message: plain(intro), booking_id: a.ref, booking_type: KIND_LABEL[a.kind],
+    who_label: a.kind === "lab" ? "Tests" : "Doctor", who: what, date_time: when, location: where,
+    previous_date_time: row.kind === "rescheduled" ? niceDate(row.extra?.old_date, row.extra?.old_time) : "",
+    prep: row.kind === "booked" && a.kind === "lab" ? tests.filter((t) => t.prep).map((t) => `${t.name}: ${t.prep}`).join(" · ") : "",
+    button1_label: buttons[0]?.[0] ?? "", button1_url: buttons[0]?.[1] ?? "",
+    button2_label: buttons[1]?.[0] ?? "", button2_url: buttons[1]?.[1] ?? "",
+    button3_label: buttons[2]?.[0] ?? "", button3_url: buttons[2]?.[1] ?? "",
+    support_line: st?.support_phone ? `Questions? Call ${st.support_phone}.` : "",
+  };
   const rows: [string, string][] = [["Booking ID", `<b style="font-size:18px;letter-spacing:1px">${esc(a.ref)}</b>`], ["Type", esc(KIND_LABEL[a.kind])], [a.kind === "lab" ? "Tests" : "Doctor", esc(what)], ["Date & time", esc(when)], ["Where", esc(where)]];
   const html = `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Segoe UI,Arial,sans-serif;color:#0f172a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
@@ -86,16 +102,16 @@ ${prep && row.kind === "booked" ? `<p style="margin:16px 0 4px;font-weight:600">
 <tr><td style="padding:14px 24px 8px">${buttons.map(([l, u]) => `<a href="${esc(u)}" style="display:inline-block;margin:0 8px 10px 0;padding:10px 16px;border-radius:9px;background:${l.startsWith("Join") || l.startsWith("Choose") || l.startsWith("Book") ? "#1d4ed8" : "#e0e7ff"};color:${l.startsWith("Join") || l.startsWith("Choose") || l.startsWith("Book") ? "#fff" : "#1e3a8a"};text-decoration:none;font-weight:600;font-size:14px">${esc(l)}</a>`).join("")}</td></tr>
 <tr><td style="padding:6px 24px 22px;color:#64748b;font-size:12px;line-height:1.5">${st?.support_phone ? `Questions? Call ${esc(st.support_phone)}. ` : ""}This is an automated message from ${H}. In an emergency, go straight to the Emergency department.</td></tr>
 </table></td></tr></table></body></html>`;
-  return { subject, html };
+  return { subject, html, params };
 }
 
-async function deliver(to: string, subject: string, html: string, fromName: string) {
+async function deliver(to: string, subject: string, html: string, fromName: string, params: Record<string, string> = {}) {
   const ejsService = Deno.env.get("EMAILJS_SERVICE_ID"), ejsPublic = Deno.env.get("EMAILJS_PUBLIC_KEY"), ejsPrivate = Deno.env.get("EMAILJS_PRIVATE_KEY");
   if (ejsService && ejsPublic && ejsPrivate) {
     const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ service_id: ejsService, template_id: Deno.env.get("EMAILJS_TEMPLATE_ID") || "template_hospital", user_id: ejsPublic, accessToken: ejsPrivate,
-        template_params: { to_email: to, subject, html, from_name: fromName } }),
+        template_params: { ...params, to_email: to, subject, html, from_name: fromName } }),
     });
     return r.ok ? { status: "sent", provider: "emailjs", error: null } : { status: "failed", provider: "emailjs", error: `${r.status} ${(await r.text()).slice(0, 300)}` };
   }
@@ -136,8 +152,8 @@ Deno.serve(async (req) => {
       const { data: room } = roomCode ? await sb.from("nav_rooms").select("name_en,floor_id").eq("code", roomCode).maybeSingle() : { data: null };
       const { data: floor } = room ? await sb.from("nav_floors").select("name_en").eq("id", room.floor_id).maybeSingle() : { data: null };
       const { data: tests } = a.test_codes?.length ? await sb.from("nav_lab_tests").select("name,prep,sort").in("code", a.test_codes).order("sort") : { data: [] };
-      const { subject, html } = render(row, a, doc, room, floor, tests ?? [], st, appUrl);
-      const res = await deliver(row.to_email, subject, html, st?.mail_from_name || st?.hospital_name || "Hospital");
+      const { subject, html, params } = render(row, a, doc, room, floor, tests ?? [], st, appUrl);
+      const res = await deliver(row.to_email, subject, html, st?.mail_from_name || st?.hospital_name || "Hospital", params);
       out[res.status as "sent" | "skipped" | "failed"]++;
       await sb.from("nav_email_outbox").update({ status: res.status, provider: res.provider, error: res.error, subject, html, sent_at: res.status === "sent" ? new Date().toISOString() : null }).eq("id", row.id);
     } catch (e) {
