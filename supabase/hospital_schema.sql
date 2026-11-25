@@ -21,6 +21,7 @@ create table public.nav_rooms (
   door_pos double precision not null default 0.5 check (door_pos between 0 and 1),
   door_width double precision not null default 1.6 check (door_width between 0.6 and 6),
   link_group text, keywords text not null default '', searchable boolean not null default true,
+  room_no text,                                   -- v6: room number shown in admin and doctor-room names (e.g. 105)
   updated_at timestamptz not null default now()
 );
 create index nav_rooms_floor_idx on public.nav_rooms(floor_id);

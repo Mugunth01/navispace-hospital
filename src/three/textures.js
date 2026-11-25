@@ -41,6 +41,8 @@ export function roofLabel(name, sub, w, d) {
     return best.l;
   };
   const MIN = Math.max(9, S * 0.16);
+  // Doctor rooms ("Dr. Arvind Ramanan (Cardiology) · 105") always break into "Dr. Arvind Ramanan" / "Cardiology · 105".
+  const doc = name.match(/^(Dr\.?\s.+?)\s\((.+)\)\s·\s(\S+)$/);
   let size = Math.min(ch * 0.34, S * 0.46), lines = [name];
   const fits = () => {
     g.font = font(size);
@@ -50,7 +52,7 @@ export function roofLabel(name, sub, w, d) {
   };
   for (;;) {
     g.font = font(size);
-    lines = g.measureText(name).width > maxW ? split(name) : [name];
+    lines = doc ? [doc[1], `${doc[2]} · ${doc[3]}`] : g.measureText(name).width > maxW ? split(name) : [name];
     if (fits() || size <= MIN) break;
     size -= Math.max(1, size * 0.06);
   }

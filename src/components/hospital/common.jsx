@@ -5,6 +5,12 @@ import {
 } from 'lucide-react';
 import { LiftIcon } from '../icons.jsx';
 
+// A room named after its doctor ("Dr. A (Cardiology) · 105") reads as "Room 105" in that doctor's own row.
+const roomLabel = (d) => {
+  const m = d.place.name.match(/^Dr\.?\s.+\s·\s(\S+)$/);
+  return m && d.place.name.startsWith(d.name) ? `Room ${m[1]}` : d.place.name;
+};
+
 const BY_CAT = { opd: Stethoscope, diagnostics: Microscope, emergency: Ambulance, pharmacy: Pill, inpatient: BedDouble, amenities: Coffee, services: Info };
 export const catOf = (p) => p?.store?.category?.id || p?.categoryId || null;
 
@@ -56,7 +62,7 @@ export function DoctorRow({ d, model, onDirections, compact = false }) {
         <span className="hDocText">
           <b>{d.name}</b>
           <small>{d.speciality}{d.qualification && !compact ? ` · ${d.qualification}` : ''}</small>
-          <small className="hDocWhere">{d.place.name} · {floorName(model, d.place.floor)}{d.hours ? ` · ${d.days ? `${d.days} ` : ''}${d.hours}` : ''}</small>
+          <small className="hDocWhere">{roomLabel(d)} · {floorName(model, d.place.floor)}{d.hours ? ` · ${d.days ? `${d.days} ` : ''}${d.hours}` : ''}</small>
         </span>
       </button>
       <span className="hDocBtns">

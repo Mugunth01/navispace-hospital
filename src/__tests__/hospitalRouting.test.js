@@ -13,12 +13,12 @@ describe('hospital layout', () => {
   it('installs floors, corridors and cores', () => {
     expect(walkwaySegments('G').length).toBeGreaterThanOrEqual(17);  // spine + 5 wings x 3 + lobby, plus joins
     expect(lifts.length).toBeGreaterThan(1);
-    expect(lifts.every((l) => l.floors.length === 2)).toBe(true);
-    expect(stairs.length).toBe(8);
+    expect(lifts.every((l) => l.floors.length === 5)).toBe(true);
+    expect(stairs.length).toBe(20);
     expect(new Set(lifts.map((l) => l.group ?? l.letter)).size).toBeGreaterThan(3);
-    expect(restrooms.length).toBe(8);
-    expect(anchorPlaces.length).toBe(4);
-    expect(units.length).toBeGreaterThan(220);
+    expect(restrooms.length).toBe(20);
+    expect(anchorPlaces.length).toBe(7);
+    expect(units.length).toBeGreaterThan(550);
   });
   it('every start reaches every room (and every walk stays short of absurd)', () => {
     const fails = [];

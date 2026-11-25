@@ -10,7 +10,7 @@ const TILES = [
   { label: 'Laboratory', Icon: Microscope, color: '#4f7fe0', codes: ['sample-collection', 'clinical-laboratory'], cat: 'diagnostics' },
   { label: 'OPD clinics', Icon: Stethoscope, color: '#21a39a', search: 'opd' },
   { label: 'Billing', Icon: Banknote, color: '#8e6ad6', codes: ['billing-insurance'], cat: 'services' },
-  { label: 'Cafeteria', Icon: Coffee, color: '#d97706', codes: ['cafeteria'], cat: 'amenities' },
+  { label: 'Food court', Icon: Coffee, color: '#d97706', codes: ['food-court-seating-hall'], cat: 'amenities' },
   { label: 'Restrooms', Icon: Toilet, color: '#3b82c4', nearest: 'restroom' },
 ];
 

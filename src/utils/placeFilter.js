@@ -25,7 +25,7 @@ export function filterPlaces(places, { floor = '', category = '', query = '' } =
 }
 
 // Popular hospital destinations first (when they exist), then the entrances.
-const POPULAR = ['emergency-triage', 'reception-registration', 'pharmacy-op', 'sample-collection', 'billing-insurance', 'x-ray', 'ct-scan', 'cafeteria', 'help-desk'];
+const POPULAR = ['emergency-triage', 'reception-registration', 'pharmacy-op', 'sample-collection', 'billing-insurance', 'x-ray', 'ct-scan', 'food-court-seating-hall', 'help-desk'];
 export function topStores(places, limit = 12) {
   const byUnit = new Map(places.filter((p) => p.unit).map((p) => [p.unit, p]));
   const pop = POPULAR.map((c) => byUnit.get(c)).filter(Boolean);

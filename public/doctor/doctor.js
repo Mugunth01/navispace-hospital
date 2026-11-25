@@ -15,7 +15,7 @@
 
   const cfg = window.NAVI_CONFIG;
   if (!cfg || !window.supabase) { $("login").hidden = false; $("lmsg").textContent = "Supabase is not configured (admin/config.js)."; return; }
-  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { storageKey: "navi-doctor-auth" } });
   const kickMail = () => fetch(`${cfg.supabaseUrl}/functions/v1/send-mail`, { method: "POST", headers: { apikey: cfg.supabaseKey, "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
   const S = { doc: null, tab: "today", appts: [], open: null, sessions: [] };
 

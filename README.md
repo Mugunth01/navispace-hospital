@@ -83,6 +83,19 @@ Open `/admin/`, "First time? Create your account" with the admin email, confirm 
 - 268 rooms, **71 fictional doctors** (random names from a fixed seed, with designation, experience, languages, bio
   and weekly sessions), 30 bookable lab tests and scans with preparation notes and prices.
 
+## v6: 5 floors, food court, ICUs and wards
+- **Ground:** Emergency, registration and billing, laboratory, radiology, cardiac diagnostics, rehab, admin and a
+  **Food Court** (8 counters + seating hall) beside the entrance lobby.
+- **1st:** doctor OPD (cardiac, neuro, ortho, women & children, specialty clinics). **2nd:** more OPD + dialysis,
+  endoscopy, chemotherapy day care, day care ward. **3rd:** operation theatres, pre-op, **post-op recovery rooms 301–316**,
+  MICU / SICU / CCU / NICU / PICU / Neuro ICU, labour & delivery, HDU. **4th:** general wards (male / female, bed counts),
+  **semi-private, post-op, postnatal, paediatric and private rooms 401–456**, maternity and paediatric wards.
+- **Doctor rooms are named after their doctor** with a room number: `Dr. Arvind Ramanan (Cardiology) · 105`.
+  Each doctor has their own room. 670 rooms, 90 fictional doctors.
+- **Admin:** search the block list by room number, name or doctor; set a doctor from the room itself ("Put a doctor in
+  this room"); moving a doctor renames both rooms; door / size / code fields are under *Advanced*. The admin page and the
+  doctor portal keep separate logins, so a doctor signing in on the same browser no longer breaks admin saves.
+
 ## Appointments
 **Patients** (no account needed): Doctors tab → doctor → profile → *Book clinic visit* or *Book online consultation* →
 date + time → name, mobile, email, age, reason, consent → booking ID. *Lab tests & scans*: pick several lab tests (one

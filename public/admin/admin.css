@@ -123,3 +123,14 @@ body.admin{overflow:hidden;display:flex;flex-direction:column;height:100%}
 .stable input[type=time]{padding:6px 2px!important;font-size:12.5px!important;font-variant-numeric:tabular-nums}
 .stable input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .stable select{padding-left:4px!important;padding-right:2px!important}
+/* v6: block search, room numbers, doctor in room, advanced fields */
+.bsearch{width:100%;box-sizing:border-box;font:400 14px var(--f-ui);border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface-2)}
+.blist li[hidden]{display:none}
+.blist .rno{min-width:38px;font:600 12px var(--f-ui);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:1px 5px;text-align:center}
+.rdocs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rdocs li{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.rdocs small{display:block;color:var(--muted);font-size:12px}
+details.adv{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:12px}
+details.adv>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted)}
+details.adv[open]>summary{margin-bottom:10px}
+details.adv>*:not(summary){margin-bottom:10px}

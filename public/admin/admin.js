@@ -17,7 +17,7 @@
   };
   const NOT_ROUTED = new Set(["garden", "service"]);
 
-  const ROOM_COLS = ["code", "floor_id", "name_en", "name_ta", "category", "x", "z", "w", "d", "door_side", "door_pos", "door_width", "link_group", "keywords", "searchable"];
+  const ROOM_COLS = ["code", "floor_id", "name_en", "name_ta", "category", "x", "z", "w", "d", "door_side", "door_pos", "door_width", "link_group", "keywords", "searchable", "room_no"];
   const WALK_COLS = ["floor_id", "name", "x", "z", "w", "d"];
   const START_COLS = ["code", "floor_id", "kind", "name_en", "name_ta", "x", "z"];
   const DOC_COLS = ["name", "speciality", "qualification", "room_code", "days", "hours", "active", "sort", "designation", "bio", "experience_years", "languages", "photo_url", "slot_minutes", "booking_enabled", "online_enabled"];
@@ -26,7 +26,7 @@
   const T = t => "nav_" + t;
 
   const svg = $("plan");
-  const A = { sb: null, user: null, data: null, orig: null, floor: null, sel: null, vb: null, drag: null, confirmDel: false, mode: "layout", doc: null };
+  const A = { sb: null, user: null, data: null, orig: null, floor: null, sel: null, vb: null, drag: null, confirmDel: false, mode: "layout", doc: null, blockQ: "", adv: false };
   window.NaviAdmin = { A, hooks: {}, toast: (...a) => toast(...a), esc, opt: (...a) => opt(...a), uid: () => uid(), updateSave: () => updateSave(), renderDocs: () => renderDocs(), floorName: (id) => floorName(id), routable: () => routable(), cfg: window.NAVI_CONFIG };
 
   function toast(msg, bad) { const t = $("toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), bad ? 6000 : 3000); }
@@ -55,7 +55,8 @@
   /* ---------- auth ---------- */
   const cfg = window.NAVI_CONFIG;
   if (!cfg || !cfg.supabaseUrl || !window.supabase) { $("login").hidden = false; $("lmsg").textContent = "Supabase is not configured. Fill in admin/config.js."; return; }
-  A.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  // Own storage key: a doctor signing in to the Doctor portal in the same browser must not replace the admin's login.
+  A.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { storageKey: "navi-admin-auth" } });
   // One admin account (admin@tefnotech.com), created in Supabase → Authentication; no sign-up from this page.
   $("lform").addEventListener("submit", async e => {
     e.preventDefault(); const email = $("email").value.trim(), password = $("pw").value; const m = $("lmsg"); m.className = "lmsg"; m.textContent = "…";
@@ -148,7 +149,8 @@
       toast("Saved. Visitors see the change the next time they open the map.");
     } catch (err) {
       const m = String(err.message || err);
-      toast(/foreign key|violates/.test(m) ? "Save failed: a room that still has doctors can't be deleted. Move its doctors to another room first." : "Save failed: " + m, true);
+      toast(/row-level security/.test(m) ? "Save failed: you are no longer signed in as the admin. Sign out, sign in again, then save." :
+        /foreign key/.test(m) ? "Save failed: a room that still has doctors can't be deleted. Move its doctors to another room first." : "Save failed: " + m, true);
       updateSave();
     }
   });
@@ -186,11 +188,18 @@
     A.vb = { x: b.x0 - pad, y: b.z0 - pad, w: b.x1 - b.x0 + pad * 2, h: b.z1 - b.z0 + pad * 2 };
     applyVB();
   }
+  function zoomTo(r) {   // centre the plan on a block picked from the list
+    const w = Math.max(A.vb.w * 0.5, 24), h = A.vb.h * (w / A.vb.w);
+    A.vb = { x: r.x + r.w / 2 - w / 2, y: r.z + r.d / 2 - h / 2, w, h }; applyVB();
+  }
   function applyVB() { svg.setAttribute("viewBox", `${A.vb.x} ${A.vb.y} ${A.vb.w} ${A.vb.h}`); svg.setAttribute("preserveAspectRatio", "xMidYMid meet"); }
   function toWorld(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = svg.getScreenCTM().inverse(); const r = p.matrixTransform(m); return { x: r.x, z: r.y }; }
   function nameLines(o) {
-    const fs = Math.max(0.28, Math.min(0.62, (o.w * 0.92) / Math.max(4, (o.name_en || "Unnamed").length * 0.56)));
-    return { fs, en: o.name_en || "Unnamed", ta: o.name_ta || "பெயரில்லை" };
+    // Doctor rooms: "Dr. Arvind Ramanan" over "Cardiology · 105"; other rooms: English over Tamil.
+    const m = (o.name_en || "").match(/^(Dr\.?\s.+?)\s\((.+)\)\s·\s(\S+)$/);
+    const en = m ? m[1] : o.name_en || "Unnamed", ta = m ? `${m[2]} · ${m[3]}` : o.name_ta || "பெயரில்லை";
+    const fs = Math.max(0.28, Math.min(0.62, (o.w * 0.92) / Math.max(4, Math.max(en.length, ta.length * 0.82) * 0.56)));
+    return { fs, en, ta, fit: o.w * 0.92 };
   }
   function renderPlan() {
     if (!A.data) return;
@@ -211,8 +220,9 @@
         h += `<line class="p-door" stroke="${warn ? "#D93A3F" : "#2F80FF"}" x1="${horiz ? di.x - hw : di.x}" y1="${horiz ? di.z : di.z - hw}" x2="${horiz ? di.x + hw : di.x}" y2="${horiz ? di.z : di.z + hw}"/>`;
       }
       const L = nameLines(r);
-      h += `<text class="p-text" x="${r.x + r.w / 2}" y="${r.z + r.d / 2 - L.fs * 0.5}" font-size="${L.fs}" font-weight="600"${r.name_en ? "" : ' fill="#D93A3F"'}>${esc(L.en)}</text>`;
-      h += `<text class="p-text p-sub" x="${r.x + r.w / 2}" y="${r.z + r.d / 2 + L.fs * 0.75}" font-size="${L.fs * 0.82}"${r.name_ta ? "" : ' fill="#D93A3F"'}>${esc(L.ta)}</text>`;
+      const fit = (t, fs) => (t.length * fs * 0.56 > L.fit ? ` textLength="${L.fit}" lengthAdjust="spacingAndGlyphs"` : "");
+      h += `<text class="p-text" x="${r.x + r.w / 2}" y="${r.z + r.d / 2 - L.fs * 0.5}" font-size="${L.fs}" font-weight="600"${fit(L.en, L.fs)}${r.name_en ? "" : ' fill="#D93A3F"'}>${esc(L.en)}</text>`;
+      h += `<text class="p-text p-sub" x="${r.x + r.w / 2}" y="${r.z + r.d / 2 + L.fs * 0.75}" font-size="${L.fs * 0.82}"${fit(L.ta, L.fs * 0.82)}${r.name_ta ? "" : ' fill="#D93A3F"'}>${esc(L.ta)}</text>`;
     });
     A.data.start_points.filter(p => p.floor_id === f).forEach(p => {
       const s = sel && sel.type === "start_points" && sel.id === p.id;
@@ -266,6 +276,25 @@
     if (e.key === "Escape") select(null);
   });
 
+  /* ---------- doctor rooms ---------- */
+  // A consultation room is named after its doctor: "Dr. Arvind Ramanan (Cardiology) · 105".
+  const isDoctorRoom = r => !!r && (/^Dr\.?\s/i.test(r.name_en || "") || /^Consultation Room/i.test(r.name_en || "") || !(r.name_en || "").trim());
+  function nameRoomAfterDoctor(r) {
+    if (!r || !isDoctorRoom(r)) return;
+    const d = A.data.doctors.find(x => x.room_code === r.code), no = (r.room_no || "").trim();
+    if (d) { r.name_en = `${d.name} (${d.speciality})${no ? " · " + no : ""}`; r.name_ta = `${d.name} (${d.speciality})${no ? " · அறை " + no : ""}`; }
+    else if (/^Dr\.?\s/i.test(r.name_en || "")) { r.name_en = `Consultation Room${no ? " · " + no : ""}`; r.name_ta = `ஆலோசனை அறை${no ? " · " + no : ""}`; }
+  }
+  function moveDoctor(d, code) {
+    const old = roomByCode(d.room_code);
+    d.room_code = code;
+    if (old && old.code !== code) nameRoomAfterDoctor(old);
+    nameRoomAfterDoctor(roomByCode(code));
+    updateSave();
+  }
+  window.NaviAdmin.moveDoctor = moveDoctor;
+  const blockHit = (r, docs) => { const q = A.blockQ.trim().toLowerCase(); return !q || [r.room_no, r.name_en, r.name_ta, docs].join(" ").toLowerCase().includes(q); };
+
   /* ---------- inspector ---------- */
   const opt = (v, cur, label) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
   const num = (k, v, label, step = 0.2) => `<label class="field"><span class="lbl">${label}</span><input type="number" step="${step}" id="f-${k}" data-k="${k}" data-num="1" value="${v}"></label>`;
@@ -275,31 +304,39 @@
     const el = $("insp"), o = item();
     if (!A.data) return;
     if (!o) {
-      const rooms = A.data.rooms.filter(r => r.floor_id === A.floor).sort((a, b) => (a.name_en || "").localeCompare(b.name_en || ""));
+      const rooms = A.data.rooms.filter(r => r.floor_id === A.floor).sort((a, b) => (a.room_no || "~").localeCompare(b.room_no || "~", undefined, { numeric: true }) || (a.name_en || "").localeCompare(b.name_en || ""));
       el.innerHTML = `<h3>Hospital</h3>
         ${txt("hospital_name", A.data.settings.hospital_name, "Name (English)")}${txt("hospital_name_ta", A.data.settings.hospital_name_ta, "Name (Tamil)", false, "ta")}
         <h3>Blocks on this floor <span class="hint">(${rooms.length})</span></h3>
-        <p class="hint">Every block needs an English and a Tamil name. Click a block on the plan or in this list to edit it.</p>
-        <ul class="blist">${rooms.map(r => { const bad = errorsOf("rooms", r).length, w = warnOf(r); return `<li><button data-pick="${r.id}"><i class="sw" style="background:${(CATEGORIES[r.category] || {}).color}"></i><span>${esc(r.name_en || "Unnamed block")}</span>${bad ? '<span class="warn-dot">needs name</span>' : w ? '<span class="warn-dot">door</span>' : ""}</button></li>`; }).join("")}</ul>`;
+        <p class="hint">Click a block on the plan, or find it here by name, room number or doctor.</p>
+        <input type="search" id="bq" class="bsearch" placeholder="Search rooms, e.g. 105, ICU, Dr. Arvind" value="${esc(A.blockQ)}">
+        <ul class="blist">${rooms.map(r => { const bad = errorsOf("rooms", r).length, w = warnOf(r), docs = A.data.doctors.filter(d => d.room_code === r.code).map(d => d.name).join(" ");
+          return `<li data-s="${esc([r.room_no, r.name_en, r.name_ta, docs].join(" ").toLowerCase())}"${blockHit(r, docs) ? "" : " hidden"}><button data-pick="${r.id}"><i class="sw" style="background:${(CATEGORIES[r.category] || {}).color}"></i>${r.room_no ? `<b class="rno">${esc(r.room_no)}</b>` : ""}<span>${esc(r.name_en || "Unnamed block")}</span>${bad ? '<span class="warn-dot">needs name</span>' : w ? '<span class="warn-dot">door</span>' : ""}</button></li>`; }).join("")}</ul>`;
       return;
     }
     const t = A.sel.type, errs = errorsOf(t, o);
     let h = "";
     if (t === "rooms") {
-      const warn = warnOf(o), docs = A.data.doctors.filter(d => d.room_code === o.code);
+      const warn = warnOf(o), docs = A.data.doctors.filter(d => d.room_code === o.code), routed = !NOT_ROUTED.has(o.category) && o.category !== "lift" && o.category !== "stairs";
+      const needAdv = A.adv || !!warn || ((o.category === "lift" || o.category === "stairs") && !o.link_group);
       h = `<h3>Room / block</h3>
         ${txt("name_en", o.name_en, "Name (English) *", !o.name_en.trim())}${txt("name_ta", o.name_ta, "Name (Tamil) *", !o.name_ta.trim(), "ta")}
-        <label class="field"><span class="lbl">Category</span><select data-k="category">${Object.entries(CATEGORIES).map(([k, c]) => opt(k, o.category, c.en)).join("")}</select></label>
+        <div class="row">${txt("room_no", o.room_no, "Room number")}
+        <label class="field"><span class="lbl">Category</span><select data-k="category">${Object.entries(CATEGORIES).map(([k, c]) => opt(k, o.category, c.en)).join("")}</select></label></div>
+        ${routed ? `<h3>Doctor in this room</h3>
+        ${docs.length ? `<ul class="rdocs">${docs.map(d => `<li><span><b>${esc(d.name)}</b><small>${esc(d.speciality)}</small></span><button class="linkbtn" data-unassign="${d.id}">Remove</button></li>`).join("")}</ul>` : '<p class="hint">No doctor sits here.</p>'}
+        <label class="field"><span class="lbl">${docs.length ? "Add or move another doctor here" : "Put a doctor in this room"}</span><select id="assign"><option value="">Choose a doctor…</option>${A.data.doctors.slice().sort((x, y) => x.name.localeCompare(y.name)).filter(d => d.room_code !== o.code).map(d => { const r = roomByCode(d.room_code); return opt(d.id, "", `${d.name} · ${d.speciality}${r ? ` (now ${r.room_no || r.name_en})` : ""}`); }).join("")}</select></label>
+        ${isDoctorRoom(o) ? '<p class="hint">This room is named after its doctor, so the name updates by itself when the doctor changes.</p>' : ""}` : ""}
+        ${warn ? `<p class="err">${warn}. Visitors can't be routed here until the door touches a corridor and blocks don't overlap.</p>` : ""}
+        <details class="adv" id="adv"${needAdv ? " open" : ""}><summary>Advanced: door, size, position, code</summary>
         ${NOT_ROUTED.has(o.category) ? "" : `${txt("keywords", o.keywords, "Search keywords (e.g. scan, heart)")}
         <div class="row"><label class="field"><span class="lbl">Door side</span><select data-k="door_side">${[["N", "Top"], ["S", "Bottom"], ["W", "Left"], ["E", "Right"]].map(([k, l]) => opt(k, o.door_side, l)).join("")}</select></label>
         ${num("door_width", o.door_width, "Door width (units)", 0.2)}</div>
         <label class="field"><span class="lbl">Door position along the wall</span><input type="range" min="0.05" max="0.95" step="0.05" data-k="door_pos" data-num="1" value="${o.door_pos}"></label>
-        ${warn ? `<p class="err">${warn}. Visitors can't be routed here until the door touches a corridor and blocks don't overlap.</p>` : ""}
         ${o.category === "lift" || o.category === "stairs" ? txt("link_group", o.link_group, "Link group (same on every floor, e.g. LIFT-A)", !o.link_group) : ""}
         <label class="chk"><input type="checkbox" data-k="searchable"${o.searchable ? " checked" : ""}> Show in visitor search</label>`}
         <div class="row4">${num("x", o.x, "X")}${num("z", o.z, "Y")}${num("w", o.w, "Width")}${num("d", o.d, "Depth")}</div>
-        ${txt("code", o.code, "Code (used in links and QR)")}<p class="hint mono" id="qrlink">${esc(visitorUrl())}?to=${esc(o.code)}</p>
-        ${docs.length ? `<p class="hint">Doctors here: ${docs.map(d => esc(d.name)).join(", ")}</p>` : ""}`;
+        ${txt("code", o.code, "Code (used in links and QR)")}<p class="hint mono" id="qrlink">${esc(visitorUrl())}?to=${esc(o.code)}</p></details>`;
     } else if (t === "walkways") {
       h = `<h3>Corridor</h3>${txt("name", o.name, "Label")}
         <p class="hint">Routes follow the centre line of each corridor. Keep corridors at least 2.4 units (6 m) wide, let side corridors run into the main one, and make sure every room door touches a corridor.</p>
@@ -318,6 +355,11 @@
   const slug = s => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
   function uniqueCode(base, type, self) { let c = base || "room", n = 2; while (A.data[type].some(x => x !== self && x.code === c)) c = `${base}-${n++}`; return c; }
   $("insp").addEventListener("input", e => {
+    if (e.target.id === "bq") {   // filter the block list in place (keeps the cursor in the box)
+      A.blockQ = e.target.value; const q = A.blockQ.trim().toLowerCase();
+      $("insp").querySelectorAll(".blist li").forEach(li => (li.hidden = !!q && !li.dataset.s.includes(q)));
+      return;
+    }
     const k = e.target.dataset.k; if (!k) return;
     if (!item()) { A.data.settings[k] = e.target.value; updateSave(); return; }
     const o = item();
@@ -328,7 +370,9 @@
       o._auto = false; const old = o.code; v = slug(v) || v;
       if (A.sel.type === "rooms") A.data.doctors.forEach(d => { if (d.room_code === old) d.room_code = v; });   // doctors follow the room
     }
+    if (k === "room_no") v = v.trim() || null;
     o[k] = v;
+    if (k === "room_no" && A.sel.type === "rooms") { nameRoomAfterDoctor(o); const n1 = $("f-name_en"), n2 = $("f-name_ta"); if (n1) n1.value = o.name_en; if (n2) n2.value = o.name_ta; }
     if (k === "name_en" && o._auto && "code" in o) o.code = uniqueCode(slug(v) || (A.sel.type === "rooms" ? "room" : "start"), A.sel.type, o);
     if (k === "category") { if (["lift", "stairs", "garden", "service"].includes(v)) o.searchable = false; else if (!o.searchable && v !== "restroom") o.searchable = true; }
     renderPlan(); updateSave();
@@ -342,9 +386,15 @@
     const c = $("f-code"); if (c && document.activeElement !== c) c.value = o.code;
     const q = $("qrlink"); if (q) q.textContent = visitorUrl() + "?to=" + o.code;
   }
-  $("insp").addEventListener("change", e => { if (e.target.dataset.k === "door_pos" || e.target.dataset.k === "code") renderPlan(); });
+  $("insp").addEventListener("change", e => {
+    if (e.target.id === "assign" && e.target.value) { const d = A.data.doctors.find(x => x.id === e.target.value), o = item(); if (d && o) { moveDoctor(d, o.code); renderPlan(); renderInsp(); toast(`${d.name} now sits in ${o.room_no || o.name_en}. Press Save to keep it.`); } return; }
+    if (e.target.dataset.k === "door_pos" || e.target.dataset.k === "code") renderPlan();
+  });
+  $("insp").addEventListener("toggle", e => { if (e.target.id === "adv") A.adv = e.target.open; }, true);
   $("insp").addEventListener("click", e => {
-    const pk = e.target.closest("[data-pick]"); if (pk) return select("rooms", pk.dataset.pick);
+    const pk = e.target.closest("[data-pick]"); if (pk) { const r = A.data.rooms.find(x => x.id === pk.dataset.pick); if (r) zoomTo(r); return select("rooms", pk.dataset.pick); }
+    const un = e.target.closest("[data-unassign]");
+    if (un) { const d = A.data.doctors.find(x => x.id === un.dataset.unassign), o = item(); if (d) { d.room_code = ""; nameRoomAfterDoctor(o); updateSave(); renderPlan(); renderInsp(); toast(`${d.name} has no room now. Give them one here or in Doctors before saving.`, true); } return; }
     if (e.target.closest("#done")) return select(null);
     if (e.target.closest("#del")) {
       const o = item();
@@ -364,7 +414,7 @@
     $("dbody").innerHTML = rows.map(d => {
       const r = roomByCode(d.room_code), bad = errorsOf("doctors", d).length;
       return `<tr data-doc="${d.id}" class="${A.doc === d.id ? "on" : ""}"><td><b>${esc(d.name || "Unnamed doctor")}</b><small>${esc(d.speciality)}${d.qualification ? " · " + esc(d.qualification) : ""}</small></td>
-        <td>${r ? `${esc(r.name_en)}<small>${esc(floorName(r.floor_id))}</small>` : '<span class="err">No room</span>'}</td>
+        <td>${r ? `${esc(r.room_no ? "Room " + r.room_no : r.name_en)}<small>${esc(floorName(r.floor_id))}</small>` : '<span class="err">No room</span>'}</td>
         <td>${esc(d.days)}<small>${esc(d.hours)}</small></td><td><span class="pill${d.active ? "" : " off"}">${d.active ? "Shown" : "Hidden"}</span>${bad ? ' <span class="err">fix</span>' : ""}</td></tr>`;
     }).join("") || `<tr><td colspan="4" class="muted">No doctors match.</td></tr>`;
     const d = A.data.doctors.find(x => x.id === A.doc), el = $("dinsp");
@@ -374,7 +424,7 @@
       <label class="field"><span class="lbl">Name *</span><input type="text" data-dk="name" value="${esc(d.name)}"${d.name.trim() ? "" : ' class="bad"'} placeholder="Dr. …"></label>
       <label class="field"><span class="lbl">Speciality *</span><input type="text" data-dk="speciality" value="${esc(d.speciality)}" placeholder="e.g. Cardiology"></label>
       <label class="field"><span class="lbl">Qualification</span><input type="text" data-dk="qualification" value="${esc(d.qualification)}" placeholder="e.g. MD, DM (Cardiology)"></label>
-      <label class="field"><span class="lbl">Room *</span><select data-dk="room_code"><option value="">Choose a room…</option>${routable().map(r => opt(r.code, d.room_code, `${floorName(r.floor_id)} · ${r.name_en}`)).join("")}</select></label>
+      <label class="field"><span class="lbl">Room *</span><select data-dk="room_code"><option value="">Choose a room…</option>${routable().map(r => opt(r.code, d.room_code, `${floorName(r.floor_id)} · ${r.room_no ? r.room_no + " · " : ""}${r.name_en}`)).join("")}</select></label>
       <div class="row"><label class="field"><span class="lbl">OPD days</span><input type="text" data-dk="days" value="${esc(d.days)}" placeholder="Mon–Sat"></label>
       <label class="field"><span class="lbl">Hours</span><input type="text" data-dk="hours" value="${esc(d.hours)}" placeholder="09:00–13:00"></label></div>
       <label class="chk"><input type="checkbox" data-dk="active"${d.active ? " checked" : ""}> Show to visitors</label>
@@ -404,7 +454,9 @@
   $("dinsp").addEventListener("input", e => {
     const k = e.target.dataset.dk; if (!k) return;
     const d = A.data.doctors.find(x => x.id === A.doc); if (!d) return;
-    d[k] = e.target.type === "checkbox" ? e.target.checked : e.target.type === "number" || k === "slot_minutes" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value;
+    const v = e.target.type === "checkbox" ? e.target.checked : e.target.type === "number" || k === "slot_minutes" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value;
+    if (k === "room_code") moveDoctor(d, v);
+    else { d[k] = v; if (k === "name" || k === "speciality") nameRoomAfterDoctor(roomByCode(d.room_code)); }
     updateSave();
     // re-render the table row without stealing focus from the form
     const focusKey = document.activeElement?.dataset?.dk, pos = document.activeElement?.selectionStart;
@@ -415,7 +467,8 @@
     if (e.target.closest("#ddone")) { A.doc = null; renderDocs(); return; }
     if (e.target.closest("#ddel")) {
       if (!A.confirmDel) { A.confirmDel = true; renderDocs(); return; }
-      A.data.doctors = A.data.doctors.filter(x => x.id !== A.doc); A.data.doctor_sessions = A.data.doctor_sessions.filter(x => x.doctor_id !== A.doc); A.doc = null; A.confirmDel = false; renderDocs(); updateSave();
+      const gone = A.data.doctors.find(x => x.id === A.doc), groom = gone && roomByCode(gone.room_code);
+      A.data.doctors = A.data.doctors.filter(x => x.id !== A.doc); nameRoomAfterDoctor(groom); A.data.doctor_sessions = A.data.doctor_sessions.filter(x => x.doctor_id !== A.doc); A.doc = null; A.confirmDel = false; renderDocs(); updateSave();
     }
   });
 
