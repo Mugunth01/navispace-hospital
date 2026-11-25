@@ -11,10 +11,11 @@ const units = Object.values(model.unitsByFloor).flat().filter((u) => u.mapped);
 
 describe('hospital layout', () => {
   it('installs floors, corridors and cores', () => {
-    expect(walkwaySegments('G').length).toBe(10);  // main spine + 9 wings
+    expect(walkwaySegments('G').length).toBeGreaterThanOrEqual(17);  // spine + 5 wings x 3 + lobby, plus joins
     expect(lifts.length).toBeGreaterThan(1);
     expect(lifts.every((l) => l.floors.length === 2)).toBe(true);
-    expect(stairs.length).toBe(6);
+    expect(stairs.length).toBe(8);
+    expect(new Set(lifts.map((l) => l.group ?? l.letter)).size).toBeGreaterThan(3);
     expect(restrooms.length).toBe(8);
     expect(anchorPlaces.length).toBe(4);
     expect(units.length).toBeGreaterThan(220);

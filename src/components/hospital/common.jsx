@@ -39,23 +39,30 @@ export function searchRooms(model, q) {
     .sort((a, b) => score(a) - score(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
 
-export function DoctorAvatar({ name }) {
+export function DoctorAvatar({ name, photo }) {
+  if (photo) return <img className="hDocAvatar" src={photo} alt="" loading="lazy" />;
   const initials = name.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   return <span className="hDocAvatar" aria-hidden="true">{initials}</span>;
 }
 
-export function DoctorRow({ d, model, onRoom, onDirections, compact = false }) {
+// Opens the (lazy-loaded) booking overlay: {type:'profile', doctorId} | {type:'doctor', doctorId, mode} | {type:'lab'} | {type:'find'}
+export const openBooking = (detail) => window.dispatchEvent(new CustomEvent('navispace:book', { detail }));
+
+export function DoctorRow({ d, model, onDirections, compact = false }) {
   return (
     <div className={'hDocRow' + (compact ? ' compact' : '')}>
-      <button type="button" className="hDocMain" onClick={() => onRoom?.(d.place)}>
-        <DoctorAvatar name={d.name} />
+      <button type="button" className="hDocMain" onClick={() => openBooking({ type: 'profile', doctorId: d.id })} aria-label={`${d.name} — profile and booking`}>
+        <DoctorAvatar name={d.name} photo={d.photo_url} />
         <span className="hDocText">
           <b>{d.name}</b>
           <small>{d.speciality}{d.qualification && !compact ? ` · ${d.qualification}` : ''}</small>
           <small className="hDocWhere">{d.place.name} · {floorName(model, d.place.floor)}{d.hours ? ` · ${d.days ? `${d.days} ` : ''}${d.hours}` : ''}</small>
         </span>
       </button>
-      {onDirections && <button type="button" className="srDir" onClick={() => onDirections(d.place.id)}>Directions</button>}
+      <span className="hDocBtns">
+        {d.booking_enabled !== false && <button type="button" className="srDir hBook" onClick={() => openBooking({ type: 'doctor', doctorId: d.id, mode: 'inperson' })}>Book</button>}
+        {onDirections && <button type="button" className="srDir" onClick={() => onDirections(d.place.id)}>Directions</button>}
+      </span>
     </div>
   );
 }

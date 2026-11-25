@@ -13,6 +13,8 @@
   <div class="mode" role="group" aria-label="Section">
     <button id="m-layout" aria-pressed="true">Layout</button>
     <button id="m-docs" aria-pressed="false">Doctors</button>
+    <button id="m-appts" aria-pressed="false">Bookings</button>
+    <button id="m-labs" aria-pressed="false">Lab tests</button>
   </div>
   <nav class="ftabs" id="ftabs" aria-label="Floors"></nav>
   <div class="tools" id="layoutTools">
@@ -22,6 +24,7 @@
   </div>
   <div class="spacer"></div>
   <a class="tbtn" href="../" target="_blank" rel="noopener">Open visitor app</a>
+  <a class="tbtn" href="../doctor/" target="_blank" rel="noopener">Doctor portal</a>
   <button class="save" id="save" disabled>Save</button>
   <button class="tbtn" id="signout" hidden>Sign out</button>
 </header>
@@ -45,6 +48,31 @@
   <aside class="insp" id="dinsp"></aside>
 </main>
 
+<main class="docs" id="apptsView" hidden>
+  <section class="dlist">
+    <div class="dtools">
+      <div class="mode" role="group" aria-label="Show"><button id="a-list" aria-pressed="true">Appointments</button><button id="a-mail" aria-pressed="false">Email outbox</button></div>
+      <label class="dfil">From <input type="date" id="af"></label><label class="dfil">To <input type="date" id="at"></label>
+      <select id="ak" aria-label="Type"><option value="">All types</option><option value="inperson">Clinic visit</option><option value="online">Online</option><option value="lab">Lab / scan</option></select>
+      <select id="as" aria-label="Status"><option value="">All statuses</option><option value="booked">Booked</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="no_show">No-show</option></select>
+      <input id="aq" type="search" placeholder="Patient, phone, booking ID or doctor…" aria-label="Search bookings">
+      <button class="tbtn" id="a-reload">Refresh</button>
+    </div>
+    <div id="astats" class="astats"></div>
+    <table class="dtable" id="atable"><thead><tr><th>When</th><th>Patient</th><th>Doctor / tests</th><th>Status</th></tr></thead><tbody id="abody"></tbody></table>
+    <table class="dtable" id="mtable" hidden><thead><tr><th>Queued</th><th>To</th><th>Email</th><th>Status</th></tr></thead><tbody id="mbody"></tbody></table>
+  </section>
+  <aside class="insp" id="ainsp"></aside>
+</main>
+
+<main class="docs" id="labsView" hidden>
+  <section class="dlist">
+    <div class="dtools"><input id="lq" type="search" placeholder="Search tests…" aria-label="Search tests"><button class="tbtn" id="add-lab">+ Test / scan</button><button class="tbtn" id="bk-settings">Booking settings</button></div>
+    <table class="dtable"><thead><tr><th>Test</th><th>Where</th><th>Price</th><th>Status</th></tr></thead><tbody id="lbody"></tbody></table>
+  </section>
+  <aside class="insp" id="linsp"></aside>
+</main>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <div class="login" id="login" hidden>
@@ -55,7 +83,6 @@
     <label class="field"><span class="lbl">Email</span><input id="email" type="email" autocomplete="username" required></label>
     <label class="field"><span class="lbl">Password</span><input id="pw" type="password" autocomplete="current-password" minlength="6" required></label>
     <button class="primary" type="submit" id="lbtn">Sign in</button>
-    <button class="linkbtn" type="button" id="lmode">First time? Create your account</button>
     <p class="lmsg" id="lmsg"></p>
   </form>
 </div>
@@ -63,5 +90,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="admin.js"></script>
+<script src="admin-booking.js"></script>
 </body>
 </html>

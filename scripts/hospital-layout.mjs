@@ -1,4 +1,5 @@
 // Sample hospital layout for the NaviSpace Hospital pilot (Ground + First floor).
+// v5: 4-column wings with a cross corridor (left/right loop), 4 lift banks.
 // v4: ground plan modelled on KMCH's campus ground floor (wayfinder.kmchhospitals.com):
 // OPD-block entrance lobby in the middle of the south side, one long main spine,
 // long wings left (north) and right (south) around garden courtyards, radiology /
@@ -13,18 +14,33 @@
 
 export const WALK = 2.4;           // corridor width (6 m)
 const H = WALK / 2;
-const DEPTH = 3.6;                  // room depth from the corridor (9 m)
+const COL = 3.6;                    // room depth / column width (9 m)
 const X0 = -48, X1 = 48;            // main corridor ends (building walls at ±48.2)
 const YTOP = 20;                    // rooms end here (walls at ±20.2)
-const NORTH = [-30, -8, 14, 34];    // branch corridors to the left (north)
-const SOUTH = [-38, -18, 0, 20, 40]; // branch corridors to the right (south); 0 = entrance lobby
-const LOBBY = 0, ER_WING = -38;
+// v5: wide wings. Each wing has TWO corridors and FOUR room columns:
+//   [room] corridor [room|room] corridor [room]
+// joined at the far end by a cross corridor, so you can go up one corridor
+// and come back down the other (left/right loop). Wing centres:
+const NORTH = [-30, 0, 30];         // wings to the left (north)
+const SOUTH = [-30, 30];            // wings to the right (south)
+const LOBBY = 0;                    // entrance lobby: a narrow 2-column wing on the south side
+const WING_HALF = 2 * COL + WALK;   // 9.6: half width of a 4-column wing
+const CX = COL + H;                 // 4.8: offset of each wing corridor's centre line
+const ER_X = -30 - CX;              // emergency entrance = west corridor of the south-west wing
 const r2 = (n) => Math.round(n * 100) / 100;
 
-// Cores (identical position on both floors so lifts and stairs line up).
-const LIFTS = [{ x0: 3.2, x1: 6.8, group: 'LIFT-A', code: 'lifts-a', name: 'Lifts (main)' }, { x0: -21.8, x1: -18.2, group: 'LIFT-B', code: 'lifts-b', name: 'Lifts (west)' }]; // north side of the main corridor
-const STAIRS = [{ code: 'stairs-w', x0: -47.4, x1: -45, side: 1, label: 'Stairs (west)' }, { code: 'stairs-c', x0: 7.4, x1: 9, side: 1, label: 'Stairs (central)' }, { code: 'stairs-e', x0: 45, x1: 47.4, side: 1, label: 'Stairs (east)' }];
-const WCS = [{ x0: 23.2, x1: 25.8, side: 1 }, { x0: -7.4, x1: -5, side: -1 }, { x0: 29, x1: 31.6, side: -1 }, { x0: -43.6, x1: -41, side: 1 }];
+// Cores (identical position on both floors so lifts and stairs line up). side: 1 = north of the main corridor.
+const LIFTS = [
+  { x0: 6, x1: 9.6, side: -1, group: 'LIFT-A', code: 'lifts-a', name: 'Lifts A (lobby east)' },
+  { x0: -9.6, x1: -6, side: -1, group: 'LIFT-B', code: 'lifts-b', name: 'Lifts B (lobby west)' },
+  { x0: -16.8, x1: -13.2, side: 1, group: 'LIFT-C', code: 'lifts-c', name: 'Lifts C (west)' },
+  { x0: 13.2, x1: 16.8, side: 1, group: 'LIFT-D', code: 'lifts-d', name: 'Lifts D (east)' },
+];
+const STAIRS = [
+  { code: 'stairs-nw', x0: -47.4, x1: -45, side: 1, label: 'Stairs (north-west)' }, { code: 'stairs-ne', x0: 45, x1: 47.4, side: 1, label: 'Stairs (north-east)' },
+  { code: 'stairs-sw', x0: -47.4, x1: -45, side: -1, label: 'Stairs (south-west)' }, { code: 'stairs-se', x0: 45, x1: 47.4, side: -1, label: 'Stairs (south-east)' },
+];
+const WCS = [{ x0: -12.4, x1: -10, side: 1 }, { x0: 10, x1: 12.4, side: 1 }, { x0: -12.4, x1: -10, side: -1 }, { x0: 10, x1: 12.4, side: -1 }];
 
 function split(a, b, target) {
   const n = Math.max(1, Math.round((b - a) / target));
@@ -40,88 +56,98 @@ function minus(intervals, cut) {
   }
   return out.filter(([a, b]) => b - a > 0.6);
 }
+const wingsOf = (s) => (s > 0 ? NORTH.map((xb) => [xb, WING_HALF]) : [...SOUTH.map((xb) => [xb, WING_HALF]), [LOBBY, H + COL]]);
 
 // Every slot is a rectangle in map units {x0,x1,y0,y1} with a door side
-// ('N'|'S'|'E'|'W' = which wall faces the corridor) and a "zone" used to
-// pick the department.
+// ('N'|'S'|'E'|'W' = which wall faces the corridor) and a "zone" used to pick the department.
 function slots() {
   const out = [];
-  // Branch rooms: three per side of each branch.
   for (const [list, s] of [[NORTH, 1], [SOUTH, -1]]) {
     for (const xb of list) {
-      const ys = split(H, YTOP, 3.8);   // 5 rooms per side
-      for (const [side, x0, x1, door] of [['L', xb - H - DEPTH, xb - H, 'E'], ['R', xb + H, xb + H + DEPTH, 'W']]) {
-        ys.forEach(([a, b], i) => {
-          const y0 = s > 0 ? a : -b, y1 = s > 0 ? b : -a;
-          out.push({ zone: `${s > 0 ? 'N' : 'S'}${xb}`, order: i * 2 + (side === 'L' ? 0 : 1), x0, x1, y0, y1, door });
-        });
+      const zone = `${s > 0 ? 'N' : 'S'}${xb}`;
+      const outer = split(H, YTOP, 3.8);            // 5 rooms on the outer columns (full depth)
+      const inner = split(H, YTOP - WALK, 4);       // 4 rooms on the centre block (stops at the cross corridor)
+      const cols = [
+        [xb - WING_HALF, xb - WING_HALF + COL, 'E', outer, 0], // faces the west corridor
+        [xb - COL, xb, 'W', inner, 1],
+        [xb, xb + COL, 'E', inner, 2],
+        [xb + WING_HALF - COL, xb + WING_HALF, 'W', outer, 3], // faces the east corridor
+      ];
+      for (const [x0, x1, door, ys, c] of cols) {
+        ys.forEach(([a, b], i) => out.push({ zone, order: i * 4 + c, x0, x1, y0: s > 0 ? a : -b, y1: s > 0 ? b : -a, door }));
       }
     }
   }
+  // Entrance lobby: 5 rooms each side of a single corridor.
+  split(H, YTOP, 3.8).forEach(([a, b], i) => {
+    out.push({ zone: 'S0', order: i * 2, x0: LOBBY - H - COL, x1: LOBBY - H, y0: -b, y1: -a, door: 'E' });
+    out.push({ zone: 'S0', order: i * 2 + 1, x0: LOBBY + H, x1: LOBBY + H + COL, y0: -b, y1: -a, door: 'W' });
+  });
   // Main-corridor rooms between the wings.
-  for (const [list, s] of [[NORTH, 1], [SOUTH, -1]]) {
+  for (const s of [1, -1]) {
     let free = [[X0 + 0.6, X1 - 0.6]];
-    for (const xb of list) free = minus(free, [xb - H - DEPTH, xb + H + DEPTH]);
-    if (s > 0) for (const l of LIFTS) free = minus(free, [l.x0, l.x1]);
-    for (const st of STAIRS) if (st.side === s) free = minus(free, [st.x0, st.x1]);
-    for (const w of WCS) if (w.side === s) free = minus(free, [w.x0, w.x1]);
+    for (const [xb, hw] of wingsOf(s)) free = minus(free, [xb - hw, xb + hw]);
+    for (const c of [...LIFTS, ...STAIRS, ...WCS]) if (c.side === s) free = minus(free, [c.x0, c.x1]);
     for (const [a, b] of free.filter(([a, b]) => b - a >= 2.4)) {   // slivers stay plain wall
-      split(a, b, 3.4).forEach(([x0, x1]) => out.push({ zone: `C${s > 0 ? 'N' : 'S'}`, order: x0, x0, x1, y0: s > 0 ? H : -H - DEPTH, y1: s > 0 ? H + DEPTH : -H, door: s > 0 ? 'S' : 'N' }));
+      split(a, b, 3.4).forEach(([x0, x1]) => out.push({ zone: `C${s > 0 ? 'N' : 'S'}`, order: x0, x0, x1, y0: s > 0 ? H : -H - COL, y1: s > 0 ? H + COL : -H, door: s > 0 ? 'S' : 'N' }));
     }
   }
   return out;
 }
 
-// Courtyards / service blocks behind the main-corridor rooms (no corridor access).
+// Courtyards / service blocks between the wings, behind the main-corridor rooms.
 function backBlocks() {
   const out = [];
-  for (const [list, s] of [[NORTH, 1], [SOUTH, -1]]) {
+  for (const s of [1, -1]) {
     let free = [[X0 + 0.6, X1 - 0.6]];
-    for (const xb of list) free = minus(free, [xb - H - DEPTH, xb + H + DEPTH]);
+    for (const [xb, hw] of wingsOf(s)) free = minus(free, [xb - hw, xb + hw]);
     for (const [a, b] of free.filter(([a, b]) => b - a >= 2.4)) {
-      const y0 = s > 0 ? H + DEPTH + 0.5 : -YTOP, y1 = s > 0 ? YTOP : -(H + DEPTH + 0.5);
+      const y0 = s > 0 ? H + COL + 0.5 : -YTOP, y1 = s > 0 ? YTOP : -(H + COL + 0.5);
       out.push({ x0: a + 0.2, x1: b - 0.2, y0, y1, garden: b - a >= 6 });
     }
   }
   return out;
 }
 
-// Ten rooms per wing (5 per side, nearest the main corridor first). Ground floor
-// follows KMCH's departments: radiology + cath labs, rehabilitation, administration,
-// patient care, IP pharmacy, plus the public desks around the entrance lobby.
+// 18 rooms per wide wing (nearest the main corridor first), 10 in the lobby wing.
 const DEPT = {
   G: {
-    'S0': ['Registration', 'Cash Counter 1', 'Insurance Desk', 'May I Help You', 'OP Pharmacy', 'Cash Counter 2', 'Admissions', 'Patient Relations', 'Medical Records', 'Wheelchair Desk'],
-    'S-38': ['Emergency Triage', 'Resuscitation', 'Trauma Bay', 'Minor OT', 'ER Observation', 'Emergency Pharmacy', 'Emergency Cash Counter', 'Ambulance Desk', 'Security Office', 'Plaster Room'],
-    'S-18': ['Sample Collection', 'Clinical Laboratory', 'Blood Bank', 'Microbiology', 'Report Collection', 'ECG Room', 'Echo Lab', 'TMT (Stress Test)', 'Nuclear Medicine', 'PET-CT'],
-    S20: ['Cafeteria', 'Baby Feeding Room', "Children's Play Area", 'Prayer Room', 'ATM & Bank', 'Gift & Flower Shop', 'Waiting Lounge A', 'Waiting Lounge B', 'Optical Store', 'Lost & Found'],
-    S40: ['Physiotherapy', 'Occupational Therapy', 'Speech Therapy', 'Hydrotherapy', 'Sports Rehabilitation', 'Dietician', 'Vaccination Centre', 'Dental Clinic', 'ENT Procedure Room', 'Audiology'],
-    'N-30': ['Radiology Reception', 'X-Ray 1', 'X-Ray 2', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Cath Lab', 'Cath Lab 2', 'Radiology Reporting'],
-    'N-8': ['General Medicine · Room 1', 'General Medicine · Room 2', 'General Medicine · Room 3', 'General Medicine · Room 4', 'Diabetology', 'Executive Health Check', 'Family Medicine', 'Infectious Diseases', 'Geriatrics', 'Day Care Unit'],
-    N14: ['IP Pharmacy', 'Dialysis Unit', 'Endoscopy Suite', 'Pulmonary Function Lab', 'Sleep Lab', 'Pain Clinic', 'Wound Care', 'Minor Procedure Room', 'Pre-op Assessment', 'Central Store'],
-    N34: ['HR Office', 'Purchase Office', 'Administrative Office', 'Legal Office', 'Medical Superintendent', 'Nursing Office', 'Finance & Accounts', 'IT Help Desk', 'Conference Room', 'Training Hall'],
-    CN: ['Security Desk', 'Patient Lounge', 'Nurse Station', 'Doctors Lounge', 'Waiting Lounge C', 'Insurance Help', 'Social Services', 'Interpreter Desk', 'Feedback Desk', 'Waiting Lounge D', 'Housekeeping', 'Linen Room', 'Biomedical Engineering', 'Staff Lounge', 'Store Room', 'Waiting Lounge E'],
-    CS: ['Main Waiting Hall', 'Health Check Lounge', 'Waiting Lounge F', 'Pharmacy Store', 'Waiting Lounge G', 'Ambulance Bay Desk', 'Help Desk (east)', 'Waiting Lounge H', 'Billing (east)', 'Waiting Lounge I', 'Report Collection (east)', 'Waiting Lounge J', 'Help Desk (west)', 'Waiting Lounge K', 'Billing (west)', 'Waiting Lounge L'],
+    S0: ['Registration', 'Cash Counter 1', 'Insurance Desk', 'May I Help You', 'OP Pharmacy', 'Cash Counter 2', 'Admissions', 'Patient Relations', 'Medical Records', 'Wheelchair Desk'],
+    'S-30': ['Emergency Triage', 'Resuscitation', 'Trauma Bay', 'Minor OT', 'ER Observation', 'Emergency Pharmacy', 'Emergency Cash Counter', 'ER Nurse Station', 'Emergency X-Ray', 'Plaster Room', 'Burns Dressing', 'Decontamination Room',
+      'Ambulance Desk', 'Security Office', 'MLC Desk', 'Poison Control', 'Relatives Waiting', 'Triage Waiting'],
+    S30: ['Sample Collection', 'Biochemistry', 'Haematology', 'Clinical Pathology', 'Microbiology', 'Histopathology', 'Cytology', 'Immunology & Serology', 'Molecular Diagnostics (PCR)', 'Blood Bank',
+      'Transfusion Medicine', 'Report Collection', 'Home Collection Desk', 'Lab Reception', 'Phlebotomy Bay 2', 'Urine & Stool Collection', 'Lab Quality Office', 'Central Lab Store'],
+    'N-30': ['Radiology Reception', 'X-Ray 1', 'X-Ray 2', 'CT Scan', 'MRI', 'Ultrasound 1', 'Ultrasound 2', 'Doppler Studies', 'Mammography', 'DEXA Scan', 'Fluoroscopy', 'Cath Lab', 'Cath Lab 2',
+      'Nuclear Medicine', 'PET-CT', 'Radiology Reporting', 'Contrast Prep Room', 'Imaging Waiting'],
+    N0: ['General Medicine · Room 1', 'General Medicine · Room 2', 'General Medicine · Room 3', 'General Medicine · Room 4', 'Diabetology', 'Executive Health Check', 'Family Medicine', 'Infectious Diseases',
+      'Geriatrics', 'Day Care Unit', 'Dental Clinic', 'Dietician', 'Vaccination Centre', 'ECG Room', 'Echo Lab', 'TMT (Stress Test)', 'Pulmonary Function Lab', 'OPD Nurse Station'],
+    N30: ['Physiotherapy', 'Occupational Therapy', 'Speech Therapy', 'Hydrotherapy', 'Sports Rehabilitation', 'Audiology', 'ENT Procedure Room', 'IP Pharmacy', 'Dialysis Unit', 'Endoscopy Suite',
+      'HR Office', 'Administrative Office', 'Legal Office', 'Medical Superintendent', 'Nursing Office', 'Finance & Accounts', 'Conference Room', 'Training Hall'],
+    CN: ['Cafeteria', 'Nurse Station', 'Baby Feeding Room', "Children's Play Area", 'Doctors Lounge', 'Waiting Lounge A'],
+    CS: ['Prayer Room', 'ATM & Bank', 'Main Waiting Hall', 'Gift & Flower Shop', 'Optical Store', 'Lost & Found', 'Help Desk (east)', 'Waiting Lounge B'],
   },
   '1F': {
-    'S0': ['OPD Waiting Atrium', 'OPD Billing 1F', 'Help Desk 1F', 'Pharmacy 1F', 'Sample Collection 1F', 'Waiting 1F-A', 'Waiting 1F-B', 'Nutrition Clinic', 'Counselling', 'Vaccination 1F'],
-    'N-30': ['Cardiology · Room 101', 'Cardiology · Room 102', 'Cardiology · Room 103', 'Cardiac Cath Lab', 'Echo Lab 1F', 'Cardiac Rehab', 'Cardiothoracic Surgery · Room 107', 'Vascular Surgery · Room 108', 'Heart Failure Clinic', 'Cardiology Waiting'],
-    'N-8': ['Neurology · Room 111', 'Neurology · Room 112', 'Neurosurgery · Room 113', 'EEG & EMG Lab', 'Stroke Clinic', 'Memory Clinic', 'Epilepsy Clinic', 'Neuro Rehab', 'Movement Disorders Clinic', 'Neurology Waiting'],
-    N14: ['Orthopaedics · Room 121', 'Orthopaedics · Room 122', 'Spine Clinic', 'Sports Injury Clinic', 'Plaster Room 1F', 'Rheumatology', 'Hand Surgery · Room 127', 'Paediatric Orthopaedics', 'Bone Densitometry', 'Orthopaedics Waiting'],
-    N34: ['Psychiatry · Room 171', 'Psychology', 'Pain Clinic 1F', 'Pre-op Assessment 1F', 'Anaesthesia Clinic', 'Plastic Surgery · Room 176', 'General Surgery · Room 177', 'General Surgery · Room 178', 'Bariatric Clinic', 'Surgery Waiting'],
-    'S-38': ['Paediatrics · Room 131', 'Paediatrics · Room 132', 'Neonatology', 'Obstetrics & Gynaecology · Room 134', 'Obstetrics & Gynaecology · Room 135', 'Fertility Clinic', 'Antenatal Clinic', 'Lactation Room', 'Child Development Clinic', "Women & Children Waiting"],
-    'S-18': ['Gastroenterology · Room 141', 'Gastroenterology · Room 142', 'Endoscopy Suite 1F', 'Nephrology · Room 144', 'Dialysis Unit 1F', 'Hepatology', 'Liver Transplant Clinic', 'Kidney Transplant Clinic', 'Colorectal Clinic', 'Gastro Waiting'],
-    S20: ['ENT · Room 151', 'ENT · Room 152', 'Ophthalmology · Room 153', 'Ophthalmology · Room 154', 'Dermatology · Room 155', 'Audiology 1F', 'Cosmetology', 'Optometry', 'Laser Room', 'ENT & Eye Waiting'],
-    S40: ['Oncology Day Care', 'Medical Oncology · Room 162', 'Pulmonology · Room 163', 'Pulmonary Function Lab 1F', 'Urology · Room 165', 'Endocrinology · Room 166', 'Surgical Oncology · Room 167', 'Radiation Oncology Desk', 'Chemotherapy Suite', 'Oncology Waiting'],
-    CN: ['OPD Waiting 1F-C', 'Nurse Station 1F', 'Doctors Lounge 1F', 'Waiting 1F-D', 'Store Room 1F', 'Staff Lounge 1F', 'Waiting 1F-E', 'Seminar Room', 'Library', 'Waiting 1F-F', 'Records 1F', 'Linen Room 1F', 'Waiting 1F-G', 'Meeting Room', 'Help Desk 1F (east)', 'Waiting 1F-H'],
-    CS: ['Wound Care 1F', 'Waiting 1F-I', 'OPD Billing 1F (west)', 'Waiting 1F-J', 'Sample Collection 1F (east)', 'Waiting 1F-K', 'Pharmacy 1F (east)', 'Waiting 1F-L', 'Waiting 1F-M', 'Help Desk 1F (west)', 'Waiting 1F-N', 'Waiting 1F-O', 'Store Room 1F (east)', 'Waiting 1F-P', 'Waiting 1F-Q', 'Waiting 1F-R'],
+    S0: ['OPD Waiting Atrium', 'OPD Billing 1F', 'Help Desk 1F', 'Pharmacy 1F', 'Sample Collection 1F', 'Waiting 1F-A', 'Waiting 1F-B', 'Nutrition Clinic', 'Diabetes Education', 'Health Check Lounge'],
+    'N-30': ['Cardiology · Room 101', 'Cardiology · Room 102', 'Cardiology · Room 103', 'Cardiology · Room 104', 'Cardiac Cath Lab', 'Echo Lab 1F', 'Cardiac Rehab', 'Cardiothoracic Surgery · Room 108',
+      'Vascular Surgery · Room 109', 'Heart Failure Clinic', 'Pacemaker Clinic', 'Holter Monitoring', 'ECG 1F', 'TMT 1F', 'Preventive Cardiology', 'Cardiac Nurse Station', 'Cardio Counselling', 'Cardiology Waiting'],
+    N0: ['Neurology · Room 111', 'Neurology · Room 112', 'Neurology · Room 113', 'Neurosurgery · Room 114', 'Neurosurgery · Room 115', 'EEG & EMG Lab', 'Stroke Clinic', 'Memory Clinic',
+      'Psychiatry · Room 119', 'Psychology', 'Epilepsy Clinic', 'Movement Disorders Clinic', 'Headache Clinic', 'Neuro Rehab', 'Sleep Lab', 'Counselling Room', 'Neuro Nurse Station', 'Neurology Waiting'],
+    N30: ['Orthopaedics · Room 121', 'Orthopaedics · Room 122', 'Orthopaedics · Room 123', 'Orthopaedics · Room 124', 'Spine Clinic', 'Sports Injury Clinic', 'Rheumatology · Room 127', 'Hand Surgery · Room 128',
+      'Joint Replacement Clinic', 'Arthroscopy Clinic', 'Paediatric Orthopaedics', 'Pain Clinic', 'Plaster Room 1F', 'Bone Densitometry', 'Physiotherapy 1F', 'Brace & Splint Fitting', 'Ortho Nurse Station', 'Orthopaedics Waiting'],
+    'S-30': ['Paediatrics · Room 131', 'Paediatrics · Room 132', 'Paediatrics · Room 133', 'Neonatology', 'Obstetrics & Gynaecology · Room 135', 'Obstetrics & Gynaecology · Room 136', 'Obstetrics & Gynaecology · Room 137',
+      'Fertility Clinic', 'Antenatal Clinic', 'Fetal Medicine', 'Paediatric Surgery · Room 141', 'Child Development Clinic', 'Lactation Room', 'Colposcopy', 'Vaccination 1F', 'Paediatric Nurse Station', 'Mother & Baby Lounge', 'Women & Children Waiting'],
+    S30: ['Gastroenterology · Room 151', 'Gastroenterology · Room 152', 'Nephrology · Room 153', 'ENT · Room 154', 'ENT · Room 155', 'Ophthalmology · Room 156', 'Ophthalmology · Room 157', 'Dermatology · Room 158',
+      'Medical Oncology · Room 159', 'Pulmonology · Room 160', 'Urology · Room 161', 'Endocrinology · Room 162', 'General Surgery · Room 163', 'General Surgery · Room 164', 'Plastic Surgery · Room 165',
+      'Endoscopy Suite 1F', 'Chemotherapy Day Care', 'Specialty Waiting'],
+    CN: ['Nurse Station 1F', 'Doctors Lounge 1F', 'Seminar Room', 'Library', 'Staff Lounge 1F', 'Store Room 1F'],
+    CS: ['Records 1F', 'Waiting 1F-C', 'Linen Room 1F', 'Waiting 1F-D', 'Meeting Room', 'Waiting 1F-E', 'Help Desk 1F (east)', 'Waiting 1F-F'],
   },
 };
 
 function categoryOf(name) {
   const n = name.toLowerCase();
-  if (/emergency|triage|resus|trauma|minor ot|er obs/.test(n)) return 'emergency';
-  if (/x-ray|ct |ct scan|pet-ct|nuclear|densitometry|mri|ultrasound|mammo|radiology|laboratory|sample|blood bank|microbio|ecg|tmt|echo|eeg|cath|endoscopy|lab\b|function lab|sleep lab|audiology/.test(n)) return 'diagnostics';
+  if (/emergency|triage|resus|trauma|minor ot|er obs|er nurse|burns|decontamination|poison|mlc|relatives/.test(n)) return 'emergency';
+  if (/x-ray|ct |ct scan|pet-ct|nuclear|densitometry|dexa|doppler|fluoro|holter|pacemaker|biochem|haemat|pathology|histo|cytology|immunology|serology|molecular|transfusion|phlebotomy|collection|lab reception|lab quality|central lab|contrast|imaging|mri|ultrasound|mammo|radiology|laboratory|sample|blood bank|microbio|ecg|tmt|echo|eeg|cath|endoscopy|lab\b|function lab|sleep lab|audiology/.test(n)) return 'diagnostics';
   if (/pharmacy|optical/.test(n)) return 'pharmacy';
   if (/dialysis|day care|neonat|chemotherapy/.test(n)) return 'inpatient';
   if (/cafeteria|atm|prayer|gift|feeding|play area|lounge|waiting|atrium|library/.test(n)) return 'amenities';
@@ -174,25 +200,38 @@ export function generate() {
       });
     }
     // cores
-    LIFTS.forEach((l) => rooms.push(room(fid, `${l.code}-${fid.toLowerCase()}`, l.name, 'மின்தூக்கி', 'lift', { x0: l.x0, x1: l.x1, y0: H + 0.2, y1: H + 2.2, door: 'S' }, l.group, false)));
-    STAIRS.forEach((st) => rooms.push(room(fid, `${st.code}-${fid.toLowerCase()}`, st.label, 'படிக்கட்டு', 'stairs', { x0: st.x0, x1: st.x1, y0: H + 0.2, y1: H + 2.8, door: 'S' }, st.code.toUpperCase(), false)));
+    LIFTS.forEach((l) => rooms.push(room(fid, `${l.code}-${fid.toLowerCase()}`, l.name, 'மின்தூக்கி', 'lift',
+      l.side > 0 ? { x0: l.x0, x1: l.x1, y0: H + 0.2, y1: H + 2.2, door: 'S' } : { x0: l.x0, x1: l.x1, y0: -H - 2.2, y1: -H - 0.2, door: 'N' }, l.group, false)));
+    STAIRS.forEach((st) => rooms.push(room(fid, `${st.code}-${fid.toLowerCase()}`, st.label, 'படிக்கட்டு', 'stairs',
+      st.side > 0 ? { x0: st.x0, x1: st.x1, y0: H + 0.2, y1: H + 2.8, door: 'S' } : { x0: st.x0, x1: st.x1, y0: -H - 2.8, y1: -H - 0.2, door: 'N' }, st.code.toUpperCase(), false)));
     WCS.forEach((w, i) => rooms.push(room(fid, `restroom-${i + 1}-${fid.toLowerCase()}`, 'Restrooms', 'கழிவறைகள்', 'restroom',
       w.side > 0 ? { x0: w.x0, x1: w.x1, y0: H + 0.2, y1: H + 2.6, door: 'S' } : { x0: w.x0, x1: w.x1, y0: -H - 2.6, y1: -H - 0.2, door: 'N' }, null, true)));
     // courtyards / service
     backBlocks().forEach((b, i) => rooms.push(room(fid, `${b.garden ? 'garden' : 'service'}-${i + 1}-${fid.toLowerCase()}`,
       b.garden ? (fid === 'G' ? 'Garden Courtyard' : 'Terrace Garden') : 'Service Area', b.garden ? 'தோட்டம்' : 'சேவைப் பகுதி', b.garden ? 'garden' : 'service', { ...b, door: 'S' }, null, false)));
-    // corridors (rectangles; the app takes their centre lines)
+    // corridors (rectangles; the app takes their centre lines and joins them where they meet)
     walkways.push({ floor_id: fid, name: 'Main corridor', x: X0, y0: -H, x1: X1, y1: H });
-    NORTH.forEach((xb) => walkways.push({ floor_id: fid, name: `Wing ${xb < 0 ? 'W' : 'E'}${Math.abs(xb)} (left)`, x: xb - H, y0: 0, x1: xb + H, y1: YTOP }));
-    SOUTH.forEach((xb) => walkways.push({ floor_id: fid, name: xb === LOBBY ? 'Entrance lobby' : `Wing ${xb < 0 ? 'W' : 'E'}${Math.abs(xb)} (right)`, x: xb - H, y0: fid === 'G' && (xb === ER_WING || xb === LOBBY) ? -YTOP - 0.2 : -YTOP, x1: xb + H, y1: 0 }));
+    for (const [list, s] of [[NORTH, 1], [SOUTH, -1]]) {
+      for (const xb of list) {
+        const tag = `${s > 0 ? 'North' : 'South'} wing ${xb < 0 ? 'W' : xb > 0 ? 'E' : 'C'}`;
+        for (const [k, cx] of [['west', xb - CX], ['east', xb + CX]]) {
+          const toWall = fid === 'G' && s < 0 && Math.abs(cx - ER_X) < 0.01;   // emergency entrance
+          walkways.push({ floor_id: fid, name: `${tag} · ${k} corridor`, x: cx - H, x1: cx + H, y0: s > 0 ? 0 : (toWall ? -YTOP - 0.2 : -YTOP), y1: s > 0 ? YTOP : 0 });
+        }
+        // cross corridor at the far end joins the two (left/right loop)
+        walkways.push({ floor_id: fid, name: `${tag} · cross corridor`, x: xb - CX, x1: xb + CX, y0: s > 0 ? YTOP - WALK : -YTOP, y1: s > 0 ? YTOP : -YTOP + WALK });
+      }
+    }
+    walkways.push({ floor_id: fid, name: 'Entrance lobby', x: LOBBY - H, x1: LOBBY + H, y0: fid === 'G' ? -YTOP - 0.2 : -YTOP, y1: 0 });
   }
   start_points.push(
     { code: 'main-entrance', floor_id: 'G', kind: 'entrance', name_en: 'Main Entrance (OPD Block)', name_ta: 'முதன்மை நுழைவாயில் (ஓபிடி)', x: LOBBY, y: -YTOP },
-    { code: 'emergency-entrance', floor_id: 'G', kind: 'entrance', name_en: 'Emergency Entrance', name_ta: 'அவசர நுழைவாயில்', x: ER_WING, y: -YTOP },
+    { code: 'emergency-entrance', floor_id: 'G', kind: 'entrance', name_en: 'Emergency Entrance', name_ta: 'அவசர நுழைவாயில்', x: ER_X, y: -YTOP },
     { code: 'kiosk-reception', floor_id: 'G', kind: 'kiosk', name_en: 'Kiosk · Reception', name_ta: 'கியோஸ்க் · வரவேற்பு', x: -2, y: 0 },
-    { code: 'kiosk-1f-lifts', floor_id: '1F', kind: 'kiosk', name_en: 'Kiosk · First Floor Lifts', name_ta: 'கியோஸ்க் · முதல் தள மின்தூக்கி', x: 5, y: 0 },
+    { code: 'kiosk-1f-lifts', floor_id: '1F', kind: 'kiosk', name_en: 'Kiosk · First Floor Lifts', name_ta: 'கியோஸ்க் · முதல் தள மின்தூக்கி', x: 3, y: 0 },
   );
-  return { settings: { hospital_name: 'Demo Super Speciality Hospital', hospital_name_ta: 'டெமோ சூப்பர் ஸ்பெஷாலிட்டி மருத்துவமனை' }, floors, rooms, walkways, start_points, doctors: doctors(rooms) };
+  const docs = doctors(rooms);
+  return { settings: { hospital_name: 'Demo Super Speciality Hospital', hospital_name_ta: 'டெமோ சூப்பர் ஸ்பெஷாலிட்டி மருத்துவமனை' }, floors, rooms, walkways, start_points, doctors: docs.doctors, sessions: docs.sessions, lab_tests: labTests(rooms) };
 }
 
 function room(floor_id, code, name_en, name_ta, category, s, link_group = null, searchable = true) {
@@ -204,47 +243,122 @@ function room(floor_id, code, name_en, name_ta, category, s, link_group = null, 
   };
 }
 
-// Fictional doctors for the demo (not real people).
-const DOCS = [
-  ['Dr. Arun Prakash', 'Cardiology', 'MD, DM (Cardiology)', 'cardiology-room-101', 'Mon–Sat', '09:30–13:30'],
-  ['Dr. Meena Sundaram', 'Cardiology', 'MD, DNB (Cardiology)', 'cardiology-room-102', 'Mon–Fri', '14:00–18:00'],
-  ['Dr. Karthik Raman', 'Interventional Cardiology', 'MD, DM, FSCAI', 'cardiology-room-103', 'Tue, Thu, Sat', '10:00–14:00'],
-  ['Dr. Lakshmi Narayanan', 'Neurology', 'MD, DM (Neurology)', 'neurology-room-111', 'Mon–Sat', '09:00–13:00'],
-  ['Dr. Vignesh Balaji', 'Neurology', 'MD, DM (Neurology)', 'neurology-room-112', 'Mon–Fri', '16:00–20:00'],
-  ['Dr. Senthil Kumar', 'Neurosurgery', 'MS, MCh (Neurosurgery)', 'neurosurgery-room-113', 'Mon, Wed, Fri', '11:00–15:00'],
-  ['Dr. Priya Ramesh', 'Orthopaedics', 'MS (Ortho)', 'orthopaedics-room-121', 'Mon–Sat', '09:30–13:30'],
-  ['Dr. Rajesh Kannan', 'Orthopaedics · Joint Replacement', 'MS (Ortho), FRCS', 'orthopaedics-room-122', 'Mon–Fri', '15:00–19:00'],
-  ['Dr. Divya Mohan', 'Spine Surgery', 'MS, MCh (Spine)', 'spine-clinic', 'Tue, Thu', '10:00–14:00'],
-  ['Dr. Anitha Selvam', 'Paediatrics', 'MD (Paediatrics)', 'paediatrics-room-131', 'Mon–Sat', '09:00–13:00'],
-  ['Dr. Gokul Krishnan', 'Paediatrics', 'MD, DCH', 'paediatrics-room-132', 'Mon–Sat', '17:00–20:00'],
-  ['Dr. Kavitha Arumugam', 'Obstetrics & Gynaecology', 'MS (OG), DNB', 'obstetrics-gynaecology-room-134', 'Mon–Sat', '10:00–14:00'],
-  ['Dr. Sangeetha Velu', 'Obstetrics & Gynaecology', 'MS (OG)', 'obstetrics-gynaecology-room-135', 'Mon–Fri', '15:00–19:00'],
-  ['Dr. Manoj Subramanian', 'Gastroenterology', 'MD, DM (Gastro)', 'gastroenterology-room-141', 'Mon–Sat', '09:30–13:30'],
-  ['Dr. Revathi Shankar', 'Gastroenterology', 'MD, DM (Gastro)', 'gastroenterology-room-142', 'Mon, Wed, Fri', '14:00–18:00'],
-  ['Dr. Hariharan Mani', 'Nephrology', 'MD, DM (Nephrology)', 'nephrology-room-144', 'Mon–Sat', '10:00–14:00'],
-  ['Dr. Deepa Chandran', 'ENT', 'MS (ENT)', 'ent-room-151', 'Mon–Sat', '09:00–13:00'],
-  ['Dr. Suresh Babu', 'ENT · Head & Neck', 'MS (ENT), DNB', 'ent-room-152', 'Tue–Sat', '15:00–19:00'],
-  ['Dr. Nithya Rajan', 'Ophthalmology', 'MS (Ophth)', 'ophthalmology-room-153', 'Mon–Sat', '09:30–13:30'],
-  ['Dr. Prakash Iyer', 'Ophthalmology · Retina', 'MS, FRCS (Ophth)', 'ophthalmology-room-154', 'Mon, Thu', '14:00–18:00'],
-  ['Dr. Shalini Ganesh', 'Dermatology', 'MD (DVL)', 'dermatology-room-155', 'Mon–Sat', '10:00–14:00'],
-  ['Dr. Ramya Venkatesh', 'Medical Oncology', 'MD, DM (Oncology)', 'medical-oncology-room-162', 'Mon–Fri', '10:00–15:00'],
-  ['Dr. Ashok Kumar', 'Pulmonology', 'MD (Pulmonology)', 'pulmonology-room-163', 'Mon–Sat', '09:00–13:00'],
-  ['Dr. Bharath Raj', 'Urology', 'MS, MCh (Urology)', 'urology-room-165', 'Mon–Sat', '15:00–19:00'],
-  ['Dr. Uma Maheswari', 'Endocrinology', 'MD, DM (Endo)', 'endocrinology-room-166', 'Mon–Fri', '09:30–13:30'],
-  ['Dr. Saravanan P', 'Psychiatry', 'MD (Psychiatry)', 'psychiatry-room-171', 'Mon–Sat', '10:00–14:00'],
-  ['Dr. Jayanthi Murugan', 'General Medicine', 'MD (Gen Med)', 'general-medicine-room-1', 'Mon–Sat', '08:00–14:00'],
-  ['Dr. Naveen Kumar', 'General Medicine', 'MD (Gen Med)', 'general-medicine-room-2', 'Mon–Sat', '14:00–20:00'],
-  ['Dr. Sowmya Ravi', 'Diabetology', 'MD, Dip. Diabetology', 'diabetology', 'Mon–Sat', '08:30–12:30'],
-  ['Dr. Venkat Raman', 'Emergency Medicine', 'MD (Emergency Med)', 'emergency-triage', 'All days', '24 hours'],
-  ['Dr. Pooja Srinivasan', 'Dental Surgery', 'BDS, MDS', 'dental-clinic', 'Mon–Sat', '10:00–18:00'],
-  ['Dr. Arjun Mohan', 'Physiotherapy', 'BPT, MPT (Ortho)', 'physiotherapy', 'Mon–Sat', '08:00–17:00'],
-];
+// Fictional doctors for the demo: random-looking South Indian names from a fixed seed
+// (not real people). One doctor per consultation room / clinic, two in the busiest rooms.
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const FIRST = ['Arvind', 'Balaji', 'Dinesh', 'Ganesh', 'Harish', 'Kishore', 'Madhan', 'Naresh', 'Prabhu', 'Raghav', 'Sathish', 'Thilak', 'Vasanth', 'Yogesh', 'Ajith', 'Bhaskar', 'Elango', 'Gowtham', 'Jagan', 'Kumaran', 'Mohanraj', 'Santhosh',
+  'Aishwarya', 'Bhavani', 'Chitra', 'Dharani', 'Gayathri', 'Hema', 'Indhu', 'Janani', 'Keerthana', 'Mythili', 'Nandhini', 'Pavithra', 'Revathy', 'Sindhu', 'Swetha', 'Vidhya', 'Yamini', 'Kalpana', 'Lavanya', 'Preethi'];
+const LAST = ['Ramanan', 'Selvaraj', 'Natarajan', 'Krishnamoorthy', 'Palanisamy', 'Rangasamy', 'Sivakumar', 'Chandrasekar', 'Jayaraman', 'Murugesan', 'Thangavel', 'Kandasamy', 'Raghunathan', 'Venugopal',
+  'Sundaresan', 'Gopalakrishnan', 'Periyasamy', 'Duraisamy', 'Annamalai', 'Subbiah', 'Velusamy', 'Ponnusamy'];
+const CLINIC_SPEC = {
+  Diabetology: 'Diabetology', 'Executive Health Check': 'General Medicine', 'Family Medicine': 'Family Medicine', 'Infectious Diseases': 'Infectious Diseases', Geriatrics: 'Geriatrics',
+  'Dental Clinic': 'Dental Surgery', Physiotherapy: 'Physiotherapy', 'Emergency Triage': 'Emergency Medicine', Dietician: 'Clinical Nutrition', 'Spine Clinic': 'Spine Surgery', 'Sports Injury Clinic': 'Sports Medicine',
+  'Joint Replacement Clinic': 'Orthopaedics', 'Fertility Clinic': 'Reproductive Medicine', 'Fetal Medicine': 'Fetal Medicine', 'Stroke Clinic': 'Neurology', 'Headache Clinic': 'Neurology', Psychology: 'Clinical Psychology',
+  'Heart Failure Clinic': 'Cardiology', 'Pain Clinic': 'Pain Medicine', Neonatology: 'Neonatology', 'Speech Therapy': 'Speech & Language Therapy', Audiology: 'Audiology',
+};
+const QUAL = {
+  Cardiology: 'MD, DM (Cardiology)', Neurology: 'MD, DM (Neurology)', Neurosurgery: 'MS, MCh (Neurosurgery)', Orthopaedics: 'MS (Orthopaedics)', Paediatrics: 'MD (Paediatrics)', 'Obstetrics & Gynaecology': 'MS (OG), DNB',
+  Gastroenterology: 'MD, DM (Gastroenterology)', Nephrology: 'MD, DM (Nephrology)', ENT: 'MS (ENT)', Ophthalmology: 'MS (Ophthalmology)', Dermatology: 'MD (DVL)', 'Medical Oncology': 'MD, DM (Medical Oncology)',
+  Pulmonology: 'MD (Respiratory Medicine)', Urology: 'MS, MCh (Urology)', Endocrinology: 'MD, DM (Endocrinology)', 'General Surgery': 'MS (General Surgery)', 'Plastic Surgery': 'MS, MCh (Plastic Surgery)',
+  Psychiatry: 'MD (Psychiatry)', 'General Medicine': 'MD (General Medicine)', Diabetology: 'MD, Dip. Diabetology', 'Emergency Medicine': 'MD (Emergency Medicine)', 'Dental Surgery': 'BDS, MDS',
+  Physiotherapy: 'BPT, MPT (Ortho)', Rheumatology: 'MD, DM (Rheumatology)', 'Paediatric Surgery': 'MS, MCh (Paediatric Surgery)', 'Cardiothoracic Surgery': 'MS, MCh (CTVS)', 'Vascular Surgery': 'MS, MCh (Vascular Surgery)',
+  'Hand Surgery': 'MS (Ortho), FNB (Hand Surgery)', 'Spine Surgery': 'MS, FNB (Spine Surgery)', Neonatology: 'MD, DM (Neonatology)', 'Clinical Psychology': 'M.Phil (Clinical Psychology)',
+};
+const INTEREST = {
+  Cardiology: 'coronary angioplasty, heart failure and preventive cardiology', Neurology: 'stroke, epilepsy and headache disorders', Orthopaedics: 'joint replacement and trauma care',
+  Paediatrics: 'newborn care, childhood asthma and growth', 'Obstetrics & Gynaecology': 'high-risk pregnancy and minimally invasive gynaecology', Gastroenterology: 'endoscopy, liver disease and IBD',
+  ENT: 'sinus surgery, hearing loss and voice disorders', Ophthalmology: 'cataract, glaucoma and retina', Dermatology: 'acne, psoriasis and cosmetic dermatology', 'General Medicine': 'diabetes, hypertension and fever care',
+};
+const LANGS = ['Malayalam', 'Hindi', 'Telugu', 'Kannada'];
 function doctors(rooms) {
-  const codes = new Set(rooms.map((r) => r.code));
-  return DOCS.map(([name, speciality, qualification, room_code, days, hours], i) => {
-    if (!codes.has(room_code)) throw new Error(`doctor room missing: ${room_code}`);
-    return { name, speciality, qualification, room_code, days, hours, sort: i + 1 };
+  const R = rng(20261124), pick = (a) => a[Math.floor(R() * a.length)];
+  const usedNames = new Set(), doctors = [], sessions = [], perSpec = {};
+  const fakeName = () => { for (;;) { const n = `Dr. ${pick(FIRST)} ${pick(LAST)}`; if (!usedNames.has(n)) { usedNames.add(n); return n; } } };
+  const targets = [];
+  for (const r of rooms) {
+    if (!r.searchable) continue;
+    const m = r.name_en.match(/^(.+?) · Room \d+$/);
+    const spec = m ? m[1] : CLINIC_SPEC[r.name_en];
+    if (!spec) continue;
+    targets.push([r, spec]);
+    if (/General Medicine · Room [12]$|Cardiology · Room 101|Paediatrics · Room 131|Orthopaedics · Room 121/.test(r.name_en)) targets.push([r, spec]);  // evening doctor too
+  }
+  targets.forEach(([r, spec], i) => {
+    const name = fakeName();
+    const k = (perSpec[spec] = (perSpec[spec] || 0) + 1);
+    const designation = k === 1 ? 'Senior Consultant & Head of Department' : pick(['Senior Consultant', 'Consultant', 'Consultant', 'Associate Consultant']);
+    const exp = k === 1 ? 18 + Math.floor(R() * 12) : 5 + Math.floor(R() * 14);
+    const languages = ['English', 'Tamil', ...(R() < 0.5 ? [pick(LANGS)] : [])].join(', ');
+    const interest = INTEREST[spec] || `${spec.toLowerCase()} care`;
+    const code = name.toLowerCase().replace(/^dr\.\s*/, '').replace(/[^a-z]+/g, '-');
+    const emergency = spec === 'Emergency Medicine';
+    const evening = targets.filter((t) => t[0] === r).indexOf(targets[i]) === 1 || (!emergency && R() < 0.3);
+    const sess = emergency ? [] : evening
+      ? [1, 2, 3, 4, 5].map((d) => [d, '16:00', '20:00', 'inperson'])
+      : [1, 2, 3, 4, 5, 6].filter((d) => R() < 0.85 || d === 1).map((d) => [d, '09:00', '13:00', 'inperson']);
+    const online = !emergency && !['Dental Surgery', 'Physiotherapy', 'Audiology'].includes(spec) && R() < 0.8;
+    if (online) for (const d of [1, 3, 5]) sess.push([d, evening ? '20:00' : '14:00', evening ? '21:00' : '15:30', 'online']);
+    sess.forEach(([weekday, start_time, end_time, mode]) => sessions.push({ doctor_code: code, weekday, start_time, end_time, mode }));
+    const inp = sess.filter((x) => x[3] === 'inperson');
+    const days = emergency ? 'All days' : summariseDays(inp.map((x) => x[0]));
+    doctors.push({
+      code, name, speciality: spec, qualification: QUAL[spec] || 'MBBS, MD', room_code: r.code,
+      days, hours: emergency ? '24 hours' : inp.length ? `${inp[0][1]}–${inp[0][2]}` : '',
+      designation, bio: `${designation} in ${spec} with ${exp} years of experience. Special interests: ${interest}.`,
+      experience_years: exp, languages, slot_minutes: emergency ? 15 : (/Surgery|Psychiatry|Psychology/.test(spec) ? 20 : 15),
+      booking_enabled: !emergency, online_enabled: online, sort: i + 1,
+    });
   });
+  return { doctors, sessions };
+}
+function summariseDays(ds) {
+  const N = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const u = [...new Set(ds)].sort();
+  if (!u.length) return '';
+  const run = u.every((d, i) => i === 0 || d === u[i - 1] + 1);
+  return run && u.length > 2 ? `${N[u[0]]}–${N[u[u.length - 1]]}` : u.map((d) => N[d]).join(', ');
+}
+
+// Bookable lab tests and scans. room_code = where the patient goes (the map routes there).
+function labTests(rooms) {
+  const has = new Set(rooms.map((r) => r.code));
+  const T = (code, name, category, department, room_code, sample, prep, tat, price, home = false) => {
+    if (!has.has(room_code)) throw new Error(`lab room missing: ${room_code}`);
+    return { code, name, category, department, room_code, sample, prep, turnaround: tat, price, home_collection: home };
+  };
+  const SC = 'sample-collection';
+  return [
+    T('cbc', 'Complete Blood Count (CBC)', 'lab', 'Haematology', SC, 'Blood', 'No fasting needed', 'Same day', 350, true),
+    T('esr', 'ESR', 'lab', 'Haematology', SC, 'Blood', 'No fasting needed', 'Same day', 150, true),
+    T('fbs-ppbs', 'Blood Sugar – Fasting & Post-prandial', 'lab', 'Biochemistry', SC, 'Blood', 'Fast 10–12 hours; second sample 2 hours after food', 'Same day', 200, true),
+    T('hba1c', 'HbA1c', 'lab', 'Biochemistry', SC, 'Blood', 'No fasting needed', 'Same day', 550, true),
+    T('lipid', 'Lipid Profile', 'lab', 'Biochemistry', SC, 'Blood', 'Fast 10–12 hours (water allowed)', 'Same day', 600, true),
+    T('lft', 'Liver Function Test (LFT)', 'lab', 'Biochemistry', SC, 'Blood', 'Fast 8 hours preferred', 'Same day', 650, true),
+    T('rft', 'Kidney Function Test (RFT)', 'lab', 'Biochemistry', SC, 'Blood', 'No fasting needed', 'Same day', 600, true),
+    T('thyroid', 'Thyroid Profile (T3, T4, TSH)', 'lab', 'Biochemistry', SC, 'Blood', 'Morning sample preferred', 'Same day', 650, true),
+    T('vitd', 'Vitamin D (25-OH)', 'lab', 'Biochemistry', SC, 'Blood', 'No fasting needed', '24 hours', 1400, true),
+    T('b12', 'Vitamin B12', 'lab', 'Biochemistry', SC, 'Blood', 'No fasting needed', '24 hours', 900, true),
+    T('crp', 'C-Reactive Protein (CRP)', 'lab', 'Immunology & Serology', SC, 'Blood', 'No fasting needed', 'Same day', 500, true),
+    T('dengue', 'Dengue NS1 + IgM/IgG', 'lab', 'Immunology & Serology', SC, 'Blood', 'No fasting needed', 'Same day', 1100, true),
+    T('urine-re', 'Urine Routine', 'lab', 'Clinical Pathology', SC, 'Urine', 'First morning sample preferred', 'Same day', 150, true),
+    T('urine-culture', 'Urine Culture & Sensitivity', 'lab', 'Microbiology', SC, 'Urine', 'Before starting antibiotics; clean-catch sample', '48–72 hours', 700),
+    T('pap', 'Pap Smear', 'lab', 'Cytology', SC, 'Cervical smear', 'Avoid during periods; no douching 48 hours before', '3 days', 900),
+    T('biopsy', 'Biopsy (Histopathology)', 'lab', 'Histopathology', 'histopathology', 'Tissue', 'Bring the referral and sample container from the doctor', '3–5 days', 1800),
+    T('rtpcr', 'RT-PCR (Respiratory panel)', 'lab', 'Molecular Diagnostics (PCR)', SC, 'Nasal swab', 'No food or drink 30 minutes before', '24 hours', 1500),
+    T('blood-group', 'Blood Grouping & Rh', 'lab', 'Blood Bank', 'blood-bank', 'Blood', 'No fasting needed', '1 hour', 150),
+    T('master-health', 'Master Health Check-up', 'lab', 'Executive Health Check', 'executive-health-check', 'Blood, urine + scans', 'Fast 10–12 hours; takes about 4 hours', 'Same day', 4500),
+    T('xray-chest', 'X-Ray Chest (PA view)', 'imaging', 'Radiology', 'x-ray-1', '—', 'Remove metal objects', '2 hours', 450),
+    T('usg-abdomen', 'Ultrasound Abdomen & Pelvis', 'imaging', 'Radiology', 'ultrasound-1', '—', 'Fast 6 hours; full bladder (drink 1 litre water 1 hour before)', 'Same day', 1200),
+    T('ct-brain', 'CT Brain (plain)', 'imaging', 'Radiology', 'ct-scan', '—', 'Bring previous scans', 'Same day', 2800),
+    T('mri-spine', 'MRI Lumbar Spine', 'imaging', 'Radiology', 'mri', '—', 'Remove all metal; tell us about implants or pacemaker', '24 hours', 6500),
+    T('mammo', 'Mammography (both breasts)', 'imaging', 'Radiology', 'mammography', '—', 'No deodorant or powder on the day', '24 hours', 2200),
+    T('dexa', 'DEXA Bone Density', 'imaging', 'Radiology', 'dexa-scan', '—', 'No calcium tablets 24 hours before', 'Same day', 2500),
+    T('doppler', 'Venous Doppler (legs)', 'imaging', 'Radiology', 'doppler-studies', '—', 'Wear loose clothing', 'Same day', 2400),
+    T('ecg', 'ECG', 'cardiac', 'Cardiology', 'ecg-room', '—', 'No preparation', '30 minutes', 250),
+    T('echo', 'Echocardiogram (2D Echo)', 'cardiac', 'Cardiology', 'echo-lab', '—', 'No preparation', 'Same day', 2000),
+    T('tmt', 'Treadmill Test (TMT)', 'cardiac', 'Cardiology', 'tmt-stress-test', '—', 'Light meal 2 hours before; wear walking shoes', 'Same day', 1800),
+    T('pft', 'Pulmonary Function Test', 'cardiac', 'Pulmonology', 'pulmonary-function-lab', '—', 'No inhalers 4 hours before (ask your doctor)', 'Same day', 1200),
+  ].map((t, i) => ({ ...t, sort: i + 1 }));
 }
 
 // Database rows use z = -y and the top-left corner (admin plan: north is up).
@@ -255,7 +369,7 @@ export function toDb(L) {
     rooms: L.rooms.map((r) => { const { x0, x1, y0, y1, ...rest } = r; return { ...rest, ...rect({ x0, x1, y0, y1 }) }; }),
     walkways: L.walkways.map((w) => ({ floor_id: w.floor_id, name: w.name, ...rect({ x0: w.x, x1: w.x1, y0: w.y0, y1: w.y1 }) })),
     start_points: L.start_points.map((p) => ({ ...p, z: r2(-p.y), y: undefined })).map(({ y, ...p }) => p),
-    doctors: L.doctors,
+    doctors: L.doctors, sessions: L.sessions, lab_tests: L.lab_tests,
   };
 }
 
@@ -265,13 +379,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   fs.writeFileSync(new URL('../src/data/hospitalSeed.json', import.meta.url), JSON.stringify(db));
   const q = (v) => (v === null || v === undefined ? 'null' : typeof v === 'number' || typeof v === 'boolean' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
   const ins = (t, rows) => rows.length ? `insert into public.nav_${t}(${Object.keys(rows[0]).join(',')}) values\n${rows.map((r) => `(${Object.values(r).map(q).join(',')})`).join(',\n')};` : '';
+  const sess = db.sessions.map((x) => `((select id from public.nav_doctors where code=${q(x.doctor_code)}),${x.weekday},${q(x.start_time)},${q(x.end_time)},${q(x.mode)})`);
   const sql = [
-    '-- NaviSpace Hospital sample layout (generated by scripts/hospital-layout.mjs). Clears and reloads the layout tables.',
-    'delete from public.nav_doctors; delete from public.nav_start_points; delete from public.nav_walkways; delete from public.nav_rooms; delete from public.nav_floors; delete from public.nav_settings;',
+    '-- NaviSpace Hospital sample layout + doctors + lab tests (generated by scripts/hospital-layout.mjs). Clears and reloads these tables (bookings too).',
+    'delete from public.nav_appointments; delete from public.nav_doctor_sessions; delete from public.nav_doctor_leaves; delete from public.nav_doctors; delete from public.nav_lab_tests;',
+    'delete from public.nav_start_points; delete from public.nav_walkways; delete from public.nav_rooms; delete from public.nav_floors; delete from public.nav_settings;',
     ins('settings', [{ id: 1, ...db.settings }]), ins('floors', db.floors), ins('rooms', db.rooms), ins('walkways', db.walkways), ins('start_points', db.start_points), ins('doctors', db.doctors),
+    `insert into public.nav_doctor_sessions(doctor_id,weekday,start_time,end_time,mode) values\n${sess.join(',\n')};`,
+    ins('lab_tests', db.lab_tests),
   ].join('\n');
   fs.mkdirSync(new URL('../supabase/', import.meta.url), { recursive: true });
   fs.writeFileSync(new URL('../supabase/hospital_seed.sql', import.meta.url), sql + '\n');
   const per = (f) => db.rooms.filter((r) => r.floor_id === f && r.searchable).length;
-  console.log(`rooms ${db.rooms.length} (searchable G ${per('G')}, 1F ${per('1F')}), walkways ${db.walkways.length}, doctors ${db.doctors.length}`);
+  console.log(`rooms ${db.rooms.length} (searchable G ${per('G')}, 1F ${per('1F')}), walkways ${db.walkways.length}, doctors ${db.doctors.length}, sessions ${db.sessions.length}, lab tests ${db.lab_tests.length}`);
 }

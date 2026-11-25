@@ -51,7 +51,7 @@ export function toBundle(db, source) {
     source, settings: db.settings, mall: { name: db.settings?.hospital_name || 'Hospital', metadata: {} }, demo: source !== 'live',
     floors, categories, stores, store_categories, entities, map_version: null,
     parking_zones: [], parking_slots: [], qr_anchors: [], facilities: [], offers: [], promotions: [],
-    doctors: (db.doctors || []).map((d) => ({ ...d })),
+    doctors: (db.doctors || []).map((d) => ({ ...d, id: d.id || d.code })),
   };
 }
 

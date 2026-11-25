@@ -20,12 +20,14 @@
   const ROOM_COLS = ["code", "floor_id", "name_en", "name_ta", "category", "x", "z", "w", "d", "door_side", "door_pos", "door_width", "link_group", "keywords", "searchable"];
   const WALK_COLS = ["floor_id", "name", "x", "z", "w", "d"];
   const START_COLS = ["code", "floor_id", "kind", "name_en", "name_ta", "x", "z"];
-  const DOC_COLS = ["name", "speciality", "qualification", "room_code", "days", "hours", "active", "sort"];
-  const TABLES = { rooms: ROOM_COLS, walkways: WALK_COLS, start_points: START_COLS, doctors: DOC_COLS };
+  const DOC_COLS = ["name", "speciality", "qualification", "room_code", "days", "hours", "active", "sort", "designation", "bio", "experience_years", "languages", "photo_url", "slot_minutes", "booking_enabled", "online_enabled"];
+  const SESS_COLS = ["doctor_id", "weekday", "start_time", "end_time", "mode"];
+  const TABLES = { rooms: ROOM_COLS, walkways: WALK_COLS, start_points: START_COLS, doctors: DOC_COLS, doctor_sessions: SESS_COLS };
   const T = t => "nav_" + t;
 
   const svg = $("plan");
   const A = { sb: null, user: null, data: null, orig: null, floor: null, sel: null, vb: null, drag: null, confirmDel: false, mode: "layout", doc: null };
+  window.NaviAdmin = { A, hooks: {}, toast: (...a) => toast(...a), esc, opt: (...a) => opt(...a), uid: () => uid(), updateSave: () => updateSave(), renderDocs: () => renderDocs(), floorName: (id) => floorName(id), routable: () => routable(), cfg: window.NAVI_CONFIG };
 
   function toast(msg, bad) { const t = $("toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), bad ? 6000 : 3000); }
 
@@ -54,18 +56,11 @@
   const cfg = window.NAVI_CONFIG;
   if (!cfg || !cfg.supabaseUrl || !window.supabase) { $("login").hidden = false; $("lmsg").textContent = "Supabase is not configured. Fill in admin/config.js."; return; }
   A.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
-  let signUp = false;
-  $("lmode").addEventListener("click", () => { signUp = !signUp; $("lbtn").textContent = signUp ? "Create account" : "Sign in"; $("lmode").textContent = signUp ? "Have an account? Sign in" : "First time? Create your account"; $("lmsg").textContent = ""; });
+  // One admin account (admin@tefnotech.com), created in Supabase → Authentication; no sign-up from this page.
   $("lform").addEventListener("submit", async e => {
     e.preventDefault(); const email = $("email").value.trim(), password = $("pw").value; const m = $("lmsg"); m.className = "lmsg"; m.textContent = "…";
-    if (signUp) {
-      const { data, error } = await A.sb.auth.signUp({ email, password, options: { emailRedirectTo: location.href } });
-      if (error) { m.textContent = error.message; return; }
-      if (!data.session) { m.className = "lmsg ok"; m.textContent = "Account created. Open the confirmation email, then sign in here."; signUp = false; $("lbtn").textContent = "Sign in"; return; }
-    } else {
-      const { error } = await A.sb.auth.signInWithPassword({ email, password });
-      if (error) { m.textContent = error.message; return; }
-    }
+    const { error } = await A.sb.auth.signInWithPassword({ email, password });
+    if (error) { m.textContent = error.message; return; }
     await afterLogin();
   });
   $("signout").addEventListener("click", async () => { await A.sb.auth.signOut(); location.reload(); });
@@ -81,13 +76,16 @@
   /* ---------- data ---------- */
   async function load() {
     const q = t => A.sb.from(T(t)).select("*");
-    const res = await Promise.all(["settings", "floors", "rooms", "walkways", "start_points", "doctors"].map(q));
+    const res = await Promise.all(["settings", "floors", "rooms", "walkways", "start_points", "doctors", "doctor_sessions", "doctor_accounts"].map(q));
     const bad = res.find(r => r.error); if (bad) { toast("Could not load: " + bad.error.message, true); return; }
-    const [s, f, r, w, p, d] = res.map(x => x.data);
-    A.data = { settings: s[0] || { id: 1, hospital_name: "", hospital_name_ta: "" }, floors: f.sort((a, b) => a.level - b.level), rooms: r, walkways: w, start_points: p, doctors: d.sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)) };
+    const [s, f, r, w, p, d, ss, acc] = res.map(x => x.data);
+    ss.forEach(x => { x.start_time = String(x.start_time).slice(0, 5); x.end_time = String(x.end_time).slice(0, 5); });
+    A.data = { settings: s[0] || { id: 1, hospital_name: "", hospital_name_ta: "" }, floors: f.sort((a, b) => a.level - b.level), rooms: r, walkways: w, start_points: p, doctors: d.sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)), doctor_sessions: ss };
+    A.accounts = new Map(acc.map(a => [a.doctor_id, a]));
     A.orig = JSON.parse(JSON.stringify(A.data));
     if (!A.floor || !A.data.floors.some(x => x.id === A.floor)) A.floor = A.data.floors[0].id;
     A.sel = null; fitView(); renderTabs(); renderPlan(); renderInsp(); renderDocs(); updateSave();
+    window.NaviAdmin.hooks.loaded?.();
   }
   const list = type => A.data[type];
   const item = () => A.sel && list(A.sel.type).find(x => x.id === A.sel.id);
@@ -140,8 +138,8 @@
     const c = changes(); $("save").disabled = true; $("save").textContent = "Saving…";
     try {
       // Doctors go first on delete (they point at rooms) and last on insert.
-      for (const t of ["doctors", "start_points", "rooms", "walkways"]) if (c.deletes[t].length) { const { error } = await A.sb.from(T(t)).delete().in("id", c.deletes[t]); if (error) throw error; }
-      for (const t of ["rooms", "walkways", "start_points", "doctors"]) if (c.upserts[t].length) {
+      for (const t of ["doctor_sessions", "doctors", "start_points", "rooms", "walkways"]) if (c.deletes[t].length) { const { error } = await A.sb.from(T(t)).delete().in("id", c.deletes[t]); if (error) throw error; }
+      for (const t of ["rooms", "walkways", "start_points", "doctors", "doctor_sessions"]) if (c.upserts[t].length) {
         const rows = c.upserts[t].map(x => Object.assign({ id: x.id }, pick(x, TABLES[t])));
         const { error } = await A.sb.from(T(t)).upsert(rows, { onConflict: "id" }); if (error) throw error;
       }
@@ -159,13 +157,15 @@
   /* ---------- mode ---------- */
   function setMode(m) {
     A.mode = m;
-    $("m-layout").setAttribute("aria-pressed", m === "layout"); $("m-docs").setAttribute("aria-pressed", m === "docs");
-    $("layoutView").hidden = m !== "layout"; $("docsView").hidden = m !== "docs";
-    $("layoutTools").hidden = m !== "layout"; $("ftabs").hidden = m !== "layout";
+    for (const k of ["layout", "docs", "appts", "labs"]) { $("m-" + k).setAttribute("aria-pressed", m === k); $(k + "View").hidden = m !== k; }
+    $("layoutTools").hidden = m !== "layout"; $("ftabs").hidden = m !== "layout"; $("save").hidden = !(m === "layout" || m === "docs");
     if (m === "docs") renderDocs();
+    window.NaviAdmin.hooks.mode?.(m);
   }
   $("m-layout").addEventListener("click", () => setMode("layout"));
   $("m-docs").addEventListener("click", () => setMode("docs"));
+  $("m-appts").addEventListener("click", () => setMode("appts"));
+  $("m-labs").addEventListener("click", () => setMode("labs"));
 
   /* ---------- toolbar ---------- */
   function renderTabs() { $("ftabs").innerHTML = A.data.floors.map(f => `<button data-f="${esc(f.id)}" aria-pressed="${f.id === A.floor}">${esc(f.name_en)}</button>`).join(""); }
@@ -378,19 +378,33 @@
       <div class="row"><label class="field"><span class="lbl">OPD days</span><input type="text" data-dk="days" value="${esc(d.days)}" placeholder="Mon–Sat"></label>
       <label class="field"><span class="lbl">Hours</span><input type="text" data-dk="hours" value="${esc(d.hours)}" placeholder="09:00–13:00"></label></div>
       <label class="chk"><input type="checkbox" data-dk="active"${d.active ? " checked" : ""}> Show to visitors</label>
+      <h3>Profile</h3>
+      <div class="dphoto">${d.photo_url ? `<img src="${esc(d.photo_url)}" alt="">` : `<span>${esc((d.name || "?").replace(/^Dr\.?\s*/i, "").split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase())}</span>`}
+        <label class="tbtn">Upload photo<input type="file" accept="image/jpeg,image/png,image/webp" id="dphoto" hidden></label>${d.photo_url ? '<button class="linkbtn" id="dphoto-rm">Remove</button>' : ""}</div>
+      <label class="field"><span class="lbl">Role / designation</span><input type="text" data-dk="designation" value="${esc(d.designation || "")}" placeholder="e.g. Senior Consultant"></label>
+      <div class="row"><label class="field"><span class="lbl">Experience (years)</span><input type="number" min="0" max="70" data-dk="experience_years" value="${d.experience_years ?? ""}"></label>
+      <label class="field"><span class="lbl">Languages</span><input type="text" data-dk="languages" value="${esc(d.languages || "")}"></label></div>
+      <label class="field"><span class="lbl">About the doctor</span><textarea rows="4" data-dk="bio" maxlength="1200">${esc(d.bio || "")}</textarea></label>
+      <h3>Appointments</h3>
+      <label class="chk"><input type="checkbox" data-dk="booking_enabled"${d.booking_enabled !== false ? " checked" : ""}> Patients can book online</label>
+      <label class="chk"><input type="checkbox" data-dk="online_enabled"${d.online_enabled ? " checked" : ""}> Offers online (video) consultation</label>
+      <label class="field"><span class="lbl">Minutes per patient</span><select data-dk="slot_minutes">${[10, 15, 20, 30].map(m => opt(String(m), String(d.slot_minutes || 15), m + " min")).join("")}</select></label>
+      <div id="dextra"></div>
       ${errs.map(x => `<p class="err">${esc(x)}</p>`).join("")}
       <div class="row"><button class="tbtn" id="ddone">Done</button><button class="danger${A.confirmDel ? " sure" : ""}" id="ddel">${A.confirmDel ? "Click again to delete" : "Delete"}</button></div>`;
+    window.NaviAdmin.hooks.doctor?.(d, $("dextra"));
   }
   $("dq").addEventListener("input", renderDocs);
   $("dbody").addEventListener("click", e => { const tr = e.target.closest("[data-doc]"); if (tr) { A.doc = tr.dataset.doc; A.confirmDel = false; renderDocs(); } });
   $("add-doc").addEventListener("click", () => {
-    const o = { id: uid(), name: "", speciality: "", qualification: "", room_code: "", days: "Mon–Sat", hours: "", active: true, sort: (A.data.doctors.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1) };
+    const o = { id: uid(), name: "", speciality: "", qualification: "", room_code: "", days: "Mon–Sat", hours: "", active: true, sort: (A.data.doctors.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1),
+      designation: "Consultant", bio: "", experience_years: null, languages: "English, Tamil", photo_url: null, slot_minutes: 15, booking_enabled: true, online_enabled: false };
     A.data.doctors.push(o); A.doc = o.id; A.confirmDel = false; renderDocs(); updateSave(); document.querySelector('[data-dk="name"]')?.focus();
   });
   $("dinsp").addEventListener("input", e => {
     const k = e.target.dataset.dk; if (!k) return;
     const d = A.data.doctors.find(x => x.id === A.doc); if (!d) return;
-    d[k] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    d[k] = e.target.type === "checkbox" ? e.target.checked : e.target.type === "number" || k === "slot_minutes" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value;
     updateSave();
     // re-render the table row without stealing focus from the form
     const focusKey = document.activeElement?.dataset?.dk, pos = document.activeElement?.selectionStart;
@@ -401,7 +415,7 @@
     if (e.target.closest("#ddone")) { A.doc = null; renderDocs(); return; }
     if (e.target.closest("#ddel")) {
       if (!A.confirmDel) { A.confirmDel = true; renderDocs(); return; }
-      A.data.doctors = A.data.doctors.filter(x => x.id !== A.doc); A.doc = null; A.confirmDel = false; renderDocs(); updateSave();
+      A.data.doctors = A.data.doctors.filter(x => x.id !== A.doc); A.data.doctor_sessions = A.data.doctor_sessions.filter(x => x.doctor_id !== A.doc); A.doc = null; A.confirmDel = false; renderDocs(); updateSave();
     }
   });
 
