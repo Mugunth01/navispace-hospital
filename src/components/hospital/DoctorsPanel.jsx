@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
-import { searchDoctors, DoctorRow } from './common.jsx';
+import { Search, FlaskConical, Ticket } from 'lucide-react';
+import { searchDoctors, DoctorRow, openBooking } from './common.jsx';
 
 // Doctors directory: search by name or speciality, filter by speciality, and
 // go straight to the consultation room.
@@ -11,6 +11,10 @@ export default function DoctorsPanel({ model, onRoom, onDirections }) {
   const list = useMemo(() => searchDoctors(model, q).filter((d) => !spec || d.speciality.startsWith(spec)), [model, q, spec]);
   return (
     <div className="searchPanel hDoctors">
+      <div className="hBookBar">
+        <button type="button" onClick={() => openBooking({ type: 'lab' })}><FlaskConical size={16} aria-hidden="true" /> Lab tests &amp; scans</button>
+        <button type="button" onClick={() => openBooking({ type: 'find' })}><Ticket size={16} aria-hidden="true" /> My booking</button>
+      </div>
       <div className="srInput">
         <Search size={17} aria-hidden="true" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Doctor name or speciality…" aria-label="Search doctors" />

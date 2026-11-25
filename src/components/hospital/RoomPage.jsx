@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, MapPin, Navigation, Eye } from 'lucide-react';
-import { RoomIcon, DoctorAvatar } from './common.jsx';
+import { RoomIcon, DoctorAvatar, openBooking } from './common.jsx';
 
 // A department / room: where it is, the doctors who sit there, and the
 // navigation actions (Directions, Front view, Start here).
@@ -26,10 +26,11 @@ export default function RoomPage({ place, floor, doctors = [], onDirections, onS
         <h3 className="spH3">Doctors here</h3>
         <div className="hRoomDocs">
           {doctors.map((d) => (
-            <div key={d.id || d.name} className="hRoomDoc">
-              <DoctorAvatar name={d.name} />
+            <button type="button" key={d.id || d.name} className="hRoomDoc" onClick={() => openBooking({ type: 'profile', doctorId: d.id })}>
+              <DoctorAvatar name={d.name} photo={d.photo_url} />
               <span><b>{d.name}</b><small>{d.speciality}{d.qualification ? ` · ${d.qualification}` : ''}</small><small>{[d.days, d.hours].filter(Boolean).join(' · ')}</small></span>
-            </div>
+              {d.booking_enabled !== false && <span className="hRoomBook">Book</span>}
+            </button>
           ))}
         </div>
       </>}

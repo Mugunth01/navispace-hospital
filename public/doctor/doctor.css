@@ -1,0 +1,44 @@
+/* Doctor portal — phone first. Base tokens from ../admin/admin.css */
+body.dp{min-height:100%;background:var(--bg)}
+.dpbar{display:flex;align-items:center;gap:10px;background:var(--surface);border-bottom:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-left,0px));position:sticky;top:0;z-index:5}
+.dptabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--line);padding:6px 12px;position:sticky;top:55px;z-index:4;scrollbar-width:none}
+.dptabs button{flex:none;border:0;background:none;padding:8px 12px;border-radius:9px;font:600 13.5px var(--f-ui);color:var(--muted);cursor:pointer}
+.dptabs button[aria-selected="true"]{background:var(--brand);color:#fff}
+.dpmain{max-width:760px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.dpsum{display:flex;gap:8px;flex-wrap:wrap}
+.dpsum span{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:12.5px;color:var(--muted)}
+.dpsum b{display:block;font-size:18px;color:var(--ink)}
+.dpday{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
+.appt{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.appt.cancelled,.appt.no_show{opacity:.65}
+.apHead{display:flex;align-items:baseline;gap:10px}
+.apTime{font-weight:700;font-size:16px;min-width:74px}
+.apName{font-weight:600;flex:1}
+.apMeta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.apMeta a{color:var(--brand)}
+.apReason{font-size:13px;background:var(--surface-2);border-radius:8px;padding:6px 9px}
+.apActs{display:flex;flex-wrap:wrap;gap:6px}
+.apActs .tbtn{padding:6px 10px}
+.apActs .join{background:var(--brand);color:#fff;border-color:var(--brand)}
+.apMore{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:8px}
+.apMore .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dpmain input,.dpmain select,.dpmain textarea{width:100%;box-sizing:border-box;font:400 14px var(--f-ui);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.dpmain textarea{resize:vertical}
+.dpmain input[type=checkbox]{width:18px;height:18px;flex:none;padding:0}
+.card .chk{align-self:end;padding-bottom:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:15px}
+.card .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photoRow{display:flex;gap:14px;align-items:center}
+.photoRow img,.photoRow span.ph{width:84px;height:84px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#E6EEFF;color:var(--brand);font-weight:700;font-size:26px;flex:none}
+.stable{width:100%;border-collapse:collapse;table-layout:fixed}.stable td{padding:3px 2px}
+.stable td:nth-child(1){width:58px}.stable td:nth-child(4){width:68px}.stable td:nth-child(5){width:26px;text-align:center}.stable td:only-child{width:auto}
+.stable select,.stable input{padding:6px 5px!important;font-size:13px!important}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;background:var(--surface);border-radius:14px;border:1px dashed var(--line)}
+.pill.st-booked{background:#E6EEFF;color:#1A5FE0}.pill.st-completed{background:#E6F4EA;color:#137333}
+.pill.st-cancelled{background:#FCE8E6;color:#C5221F}.pill.st-no_show{background:#FEF7E0;color:#9A5B00}
+@media (max-width:480px){.card .row,.apMore .row{grid-template-columns:1fr}}
+
+.stable input[type=time]{padding:6px 2px!important;font-size:12.5px!important;font-variant-numeric:tabular-nums}
+.stable input[type=time]::-webkit-calendar-picker-indicator{display:none}
+.stable select{padding-left:4px!important;padding-right:2px!important}

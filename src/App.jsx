@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import Scene from './three/Scene.jsx';
 import DesktopPanel from './components/DesktopPanel.jsx';
@@ -11,6 +11,7 @@ import RoamBar from './components/RoamBar.jsx';
 import FloorBar, { NavHeaderControls } from './components/FloorBar.jsx';
 import RoomPage from './components/hospital/RoomPage.jsx';
 import ArrivalCard from './components/public/ArrivalCard.jsx';
+const BookingSheet = lazy(() => import('./booking/BookingSheet.jsx'));   // appointments load only when opened
 const HuntHud = () => null;
 const PromoSlider = () => null;
 import { useIsMobile } from './hooks/useIsMobile.js';
@@ -103,6 +104,15 @@ function MallApp({ model }) {
     return placeById.get(t) ? t : model.unitByCode.get(t)?.id || null;
   });
   const [transportPref, setTransportPref] = useState('lift');
+  // Appointments overlay: links from emails (?booking=ID&t=token, ?book=<doctor>|lab) or the navispace:book event.
+  const [booking, setBooking] = useState(() => {
+    const q = params();
+    if (q.get('booking') && q.get('t')) return { type: 'manage', ref: q.get('booking'), token: q.get('t') };
+    if (q.get('book') === 'lab') return { type: 'lab' };
+    if (q.get('book')) return { type: 'profile', doctorId: q.get('book') };
+    return null;
+  });
+  useEffect(() => { const go = (e) => setBooking({ ...e.detail }); window.addEventListener('navispace:book', go); return () => window.removeEventListener('navispace:book', go); }, []);
   function setStart(id) { setStartRaw(id); setStartKnown(true); }
 
   const [floor, setFloor] = useState(() => getPlace(params().get('from') || (qr ? qr.id : DEFAULT_START))?.floor || getPlace(DEFAULT_START)?.floor || 'G');
@@ -645,6 +655,12 @@ function MallApp({ model }) {
   };
 
   const fade = fadeKey > 0 && typeof document !== 'undefined' ? createPortal(<div key={fadeKey} className="liftFade" aria-hidden="true" />, document.body) : null;
+  const bookingEl = booking ? (
+    <Suspense fallback={null}>
+      <BookingSheet model={model} req={booking} onClose={() => setBooking(null)}
+        onDirections={(code) => { const id = model.unitByCode.get(code)?.id || (placeById.get(code) ? code : null); setBooking(null); if (id) directionsTo(id); }} />
+    </Suspense>
+  ) : null;
 
   if (isMobile) {
     return (
@@ -660,6 +676,7 @@ function MallApp({ model }) {
         setHighlightType={setHighlightType}
       />
       {fade}
+      {bookingEl}
       </>
     );
   }
@@ -697,6 +714,7 @@ function MallApp({ model }) {
       </main>
     </div>
     {fade}
+    {bookingEl}
     </>
   );
 }
