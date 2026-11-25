@@ -17,7 +17,7 @@ import { signTexture, offerBadgeTexture, huntBadgeTexture, tileTexture, roofLabe
 // escalators. Hierarchy: route > start/destination > stores > transport >
 // labels > floor.
 const STORE_H = 0.9;
-const MOBILE_TOP_INSET = 118;   // px of the canvas under the FROM/TO card
+const MOBILE_TOP_INSET = 0;     // v6: FROM/TO now sits in the header, nothing covers the top of the canvas
 const noRay = () => null;
 const ROUTE_ORDER = 20;         // renderOrder that keeps the route above everything
 const PALETTE = {

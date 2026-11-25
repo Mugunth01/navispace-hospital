@@ -475,10 +475,10 @@ function MallApp({ model }) {
     if (sel && sel.floor === floor) return { x: sel.x, y: sel.y, halfX: 6.5, halfY: 6.5 };
     if (s && s.floor === floor && (d || startKnown)) return { x: s.door?.[0] ?? s.x, y: s.door?.[1] ?? s.y, halfX: 7, halfY: 7 };
     // Wide hospital plan: a phone shows the wing around where you are; a desktop shows the whole floor.
-    if (isMobile) {
+    if (isMobile) {   // fill the map's height with the floor (no dark bands above and below); pan sideways for the rest
       const sx = s && s.floor === floor ? s.door?.[0] ?? s.x : FLOOR_BOUNDS.x;
       const half = 11, lo = FLOOR_BOUNDS.x - FLOOR_BOUNDS.halfX + half, hi = FLOOR_BOUNDS.x + FLOOR_BOUNDS.halfX - half;
-      return { x: Math.min(hi, Math.max(lo, sx)), y: FLOOR_BOUNDS.y, halfX: half, halfY: 8 };
+      return { x: Math.min(hi, Math.max(lo, sx)), y: FLOOR_BOUNDS.y - FLOOR_BOUNDS.halfY * 0.25, halfX: 4, halfY: FLOOR_BOUNDS.halfY * 0.55 };
     }
     return { x: FLOOR_BOUNDS.x, y: FLOOR_BOUNDS.y - 1, halfX: FLOOR_BOUNDS.halfX * 0.72, halfY: FLOOR_BOUNDS.halfY * 0.7 };
   }, [route, step, s, d, floor, walkHere, startKnown, isMobile, sheet, selectedSlot, placeById, huntPts]);

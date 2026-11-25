@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import MobileHeader from './MobileHeader.jsx';
 import MobileSearch from './MobileSearch.jsx';
-import MobileRouteCard from './MobileRouteCard.jsx';
 import MobileRouteSheet from './MobileRouteSheet.jsx';
 import MobileTabs from './MobileTabs.jsx';
 import HospitalSearch from '../hospital/HospitalSearch.jsx';
@@ -31,14 +30,12 @@ export default function MobileShell(props) {
   return (
     <div className={'mShell' + (navigating ? ' navigating' : '')}>
       <MobileHeader title={model.settings?.hospital_name} theme={theme} setTheme={setTheme} navigating={navigating} destName={destPlace?.name} onExitNavigation={onExitNavigation}
-        colourMode={colourMode} setColourMode={setColourMode} demo={demo} navControls={props.navHeaderCtl} />
+        colourMode={colourMode} setColourMode={setColourMode} demo={demo} navControls={props.navHeaderCtl}
+        route={onMap && !navigating && tab === 'map' && !props.hunting ? { startPlace, destPlace, onSwap, onClearDest: clearRoute,
+          onEditStart: () => setPicker('start'), onEditDest: () => setPicker('dest') } : null} />
 
       <div className="mMapArea">
         {scene}
-        {onMap && !navigating && tab === 'map' && !props.hunting && (
-          <MobileRouteCard startPlace={startPlace} destPlace={destPlace} onSwap={onSwap} onClearDest={clearRoute}
-            onEditStart={() => setPicker('start')} onEditDest={() => setPicker('dest')} />
-        )}
         {onMap && <div className={'mFloorTitle' + (tab === 'map' && !navigating ? '' : ' high')}>{floorTitle}</div>}
         {props.qrNote}
         {tab === 'map' && roamBar}

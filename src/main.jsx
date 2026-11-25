@@ -16,3 +16,8 @@ Promise.all([boot(), import('./App.jsx'), Promise.race([fontReady, new Promise((
     console.error(e);
     document.getElementById('root').innerHTML = '<p style="padding:24px;font-family:sans-serif">Could not load the hospital map. Please refresh.</p>';
   });
+
+// A trackpad pinch over the header or tabs must not zoom the whole page (it cut off the left edge and left a
+// gap under the tabs); the map handles its own zoom.
+window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, (e) => e.preventDefault());
